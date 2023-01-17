@@ -60,6 +60,8 @@ namespace vox::core::eventhandler {
 
     void Update()
     {
+        // this is premature optimization, I regret this
+
         unsigned int pressed_w = (unsigned short)GetKeyState( 'W' ) & 0x8000;
         unsigned int pressed_s = (unsigned short)GetKeyState( 'S' ) & 0x8000;
         unsigned int pressed_a = (unsigned short)GetKeyState( 'A' ) & 0x8000;

@@ -5,9 +5,9 @@
 namespace vox::consts
 {
 #if defined (DEBUG) || defined (_DEBUG)
-    constexpr int DEBUG_ENABLED = 1;
-#elif
-    constexpr int DEBUG_ENABLED = 0;
+    constexpr inline int DEBUG_ENABLED = 1;
+#else
+    constexpr inline int DEBUG_ENABLED = 0;
 #endif
 
     constexpr inline float PI = 3.1415926535f;

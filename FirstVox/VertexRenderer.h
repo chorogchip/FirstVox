@@ -3,5 +3,5 @@
 namespace vox::ren::vertex
 {
     void Render1();
-    void Resize();
+    void ResizeScreen();
 }

@@ -28,6 +28,7 @@ static BOOL                InitInstance( HINSTANCE, int );
 static LRESULT CALLBACK    WndProc( HWND, UINT, WPARAM, LPARAM );
 static INT_PTR CALLBACK    About( HWND, UINT, WPARAM, LPARAM );
 static void WinInit();
+static void ResizeRenderer( long new_width, long new_height );
 
 HWND h_wnd_;
 HINSTANCE h_instance_;
@@ -71,18 +72,23 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
         {
             for ( int i = 0; i < vox::consts::MAX_FRAME_SKIP; ++i )
             {
-                if ( auto elapsed_t = timer.GetElapsedMicroSec(); elapsed_t >= vox::consts::MICROSEC_PER_TICK )
+                if ( timer.GetElapsedMicroSec() >= vox::consts::MICROSEC_PER_TICK )
                 {
-                    elapsed_t -= vox::consts::MICROSEC_PER_TICK;  // delta time
                     timer.AddTimeMicroSec( vox::consts::MICROSEC_PER_TICK );
+
                     // update
                     vox::core::eventhandler::Update();
                     vox::core::gamecore::Update();
                 }
-                else break;
+                else goto RENDER_FRAME;
             }
-
+            {
+                // when the frame skip is too much, which means game is laggy
+                timer.Start();  // reset the timer to slow game
+            }
+RENDER_FRAME:
             // render
+            float delta_time = (float)timer.GetElapsedMicroSec().count();
             vox::ren::base::Clear();
             vox::ren::vertex::Render1();
             vox::ren::base::Present();
@@ -140,6 +146,13 @@ static void WinInit()
     }
 }
 
+
+static void ResizeRenderer( long new_width, long new_height )
+{
+    vox::ren::base::ResizeScreen( h_wnd_, new_width, new_height );
+    vox::ren::vertex::ResizeScreen();
+}
+
 static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
    h_instance_ = hInstance;
@@ -193,18 +206,17 @@ static LRESULT CALLBACK WndProc(HWND h_wnd_, UINT message, WPARAM wParam, LPARAM
         case WM_DESTROY:
             PostQuitMessage( 0 );
             break;
-        case WM_SIZE:
+        case WM_EXITSIZEMOVE:
         {
-            UINT new_width = LOWORD( lParam );
-            UINT new_height = HIWORD( lParam );
 
             RECT rect;
             GetClientRect( h_wnd_, &rect );
+            const UINT new_width = rect.right = rect.left;
+            const UINT new_height = rect.bottom - rect.top;
             MapWindowPoints( h_wnd_, nullptr, reinterpret_cast<POINT*>(&rect), 2 );
             ClipCursor( &rect );
 
-            vox::ren::base::ResizeScreen( h_wnd_, new_width, new_height );
-            vox::ren::vertex::Resize();
+            ResizeRenderer( new_width, new_height );
             break;
         }
         case WM_KEYDOWN:
@@ -342,13 +354,12 @@ static LRESULT CALLBACK WndProc(HWND h_wnd_, UINT message, WPARAM wParam, LPARAM
         case WM_DESTROY:
             PostQuitMessage( 0 );
             break;
-        case WM_SIZE:
+        case WM_EXITSIZEMOVE:
         {
-            UINT new_width = LOWORD( lParam );
-            UINT new_height = HIWORD( lParam );
+            RECT rect;
+            GetClientRect( h_wnd_, &rect );
 
-            vox::ren::base::ResizeScreen( h_wnd_, new_width, new_height );
-            vox::ren::vertex::Resize();
+            ResizeRenderer( rect.right - rect.left, rect.bottom - rect.top );
             break;
         }
         case WM_KEYDOWN:

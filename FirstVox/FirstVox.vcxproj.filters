@@ -108,6 +108,9 @@
     <ClInclude Include="GameDatas.h">
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
+    <ClInclude Include="ChunkManager.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FirstVox.cpp">
@@ -132,6 +135,9 @@
       <Filter>소스 파일\Render</Filter>
     </ClCompile>
     <ClCompile Include="GameCore.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="ChunkManager.cpp">
       <Filter>소스 파일\Core</Filter>
     </ClCompile>
   </ItemGroup>

@@ -130,6 +130,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -140,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="ChunkManager.h" />
     <ClInclude Include="Consts.h" />
     <ClInclude Include="DXHeaders.h" />
     <ClInclude Include="EBlockID.h" />
@@ -162,6 +164,7 @@
     <ClInclude Include="VertexRenderer_for_Winmain.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="ChunkManager.cpp" />
     <ClCompile Include="EventHandler.cpp" />
     <ClCompile Include="FirstVox.cpp" />
     <ClCompile Include="GameCore.cpp" />

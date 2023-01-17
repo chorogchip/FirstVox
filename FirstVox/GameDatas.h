@@ -17,5 +17,4 @@ namespace vox::data
     public:
         Block d[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X];
     };
-
 }

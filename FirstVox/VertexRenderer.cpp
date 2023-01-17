@@ -41,22 +41,6 @@ namespace vox::ren::vertex
         DirectX::XMMATRIX mat_view;
     };
 
-    static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC1[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "COLOR",    0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-    constexpr UINT NUM_ELEMENTS_DESC1 = ARRAYSIZE( VERTEX_DESC1 );
-
-    static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC2[] =
-    {
-        { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT,    0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    };
-    constexpr UINT NUM_ELEMENTS_DESC2 = ARRAYSIZE( VERTEX_DESC2 );
-
     static ID3D11Device* d3d_device_ = nullptr;
     static ID3D11DeviceContext* immediate_context_ = nullptr;
 
@@ -127,6 +111,22 @@ namespace vox::ren::vertex
             vertex_shader_blob->Release();
             return hr;
         }
+
+        static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC1[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "COLOR",    0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        };
+        constexpr UINT NUM_ELEMENTS_DESC1 = ARRAYSIZE( VERTEX_DESC1 );
+
+        static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC2[] =
+        {
+            { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 24, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 1, DXGI_FORMAT_R32G32_FLOAT,    0, 32, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        };
+        constexpr UINT NUM_ELEMENTS_DESC2 = ARRAYSIZE( VERTEX_DESC2 );
 
         hr = d3d_device_->CreateInputLayout(
             VERTEX_DESC1, NUM_ELEMENTS_DESC1,
@@ -378,7 +378,7 @@ namespace vox::ren::vertex
 
     }
 
-    void Resize()
+    void ResizeScreen()
     {
         if ( immediate_context_ == nullptr )
         {
@@ -405,16 +405,10 @@ namespace vox::ren::vertex
         mat_world_ = DirectX::XMMatrixRotationRollPitchYaw( t, t * 2.0f, t * 3.0f );
 
         auto& cam = vox::core::gamecore::camera;
-        auto mat_cam_rot = DirectX::XMMatrixTranspose( DirectX::XMMatrixRotationRollPitchYaw( cam.rotation[0], cam.rotation[1], cam.rotation[2]));
-        auto mat_cam_pos = DirectX::XMMatrixTranslation( -cam.position[0], -cam.position[1], -cam.position[2]);
+        auto mat_cam_rot_t = DirectX::XMMatrixTranspose( DirectX::XMMatrixRotationRollPitchYaw( cam.rotation[0], cam.rotation[1], cam.rotation[2]));
+        auto mat_cam_pos_t = DirectX::XMMatrixTranslation( -cam.position[0], -cam.position[1], -cam.position[2]);
 
-        //DirectX::XMVECTOR eye = DirectX::XMVectorSet( 0.0f, 3.0f, -6.0f, 0.0f );
-        //DirectX::XMVECTOR at = DirectX::XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-        //DirectX::XMVECTOR up = DirectX::XMVectorSet( 0.0f, 1.0f, 0.0f, 0.0f );
-        //auto mat_cam_look = DirectX::XMMatrixLookAtLH( eye, at, up );
-
-        mat_view_ = DirectX::XMMatrixMultiply( mat_cam_pos, mat_cam_rot  );
-        //mat_view_ = DirectX::XMMatrixMultiply( mat_cam_look, DirectX::XMMatrixIdentity() );
+        mat_view_ = DirectX::XMMatrixMultiply( mat_cam_pos_t, mat_cam_rot_t  );
 
         CBChangesEveryFrame cb_changes_every_frame;
         cb_changes_every_frame.mat_world = DirectX::XMMatrixTranspose( mat_world_ );
