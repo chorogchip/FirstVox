@@ -12,8 +12,11 @@
 
 #include "resource.h"
 
+#include "Macros.h"
 #include "Consts.h"
 #include "Timer.h"
+#include "Logger.h"
+#include "Rand.h"
 #include "EventHandler.h"
 #include "Renderer_for_Winmain.h"
 #include "VertexRenderer_for_Winmain.h"
@@ -21,6 +24,7 @@
 
 #include "GameCore.h"
 #include "EventHandler.h"
+#include "ChunkManager.h"
 
 
 static ATOM                MyRegisterClass( HINSTANCE hInstance );
@@ -52,11 +56,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     WinInit();
 
     vox::ren::base::Init( h_wnd_ );
-    vox::ren::vertex::Init( h_wnd_ );
+    vox::ren::vertex::InitForChunk( h_wnd_ );
     vox::core::gamecore::Init();
+    vox::core::chunkmanager::Init();
 
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_FIRSTVOX ) );
-
+    HRESULT hr{ S_OK };
     MSG msg{};
     vox::util::Timer timer{};
     timer.Start();
@@ -90,13 +95,22 @@ RENDER_FRAME:
             // render
             float delta_time = (float)timer.GetElapsedMicroSec().count();
             vox::ren::base::Clear();
-            vox::ren::vertex::Render1();
-            vox::ren::base::Present();
+            vox::ren::vertex::RenderForChunk();
+            vox::core::chunkmanager::Render();
+            hr = vox::ren::base::Present();
+            if ( hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET )
+            {
+                M_LOGERROR( "dx device lost after present" );
+                vox::logger::GLogger << vox::ren::base::GetDeviceRemovedReason();
+                vox::logger::GLogger.LogDebugString();
+                break;
+            }
         }
     }
-    vox::core::gamecore::Quit();
+    vox::core::chunkmanager::Clean();
+    vox::core::gamecore::Clean();
 
-    vox::ren::vertex::Clean();
+    vox::ren::vertex::CleanForChunk();
     vox::ren::base::Clean();
 
     return (int)msg.wParam;
@@ -149,8 +163,15 @@ static void WinInit()
 
 static void ResizeRenderer( long new_width, long new_height )
 {
-    vox::ren::base::ResizeScreen( h_wnd_, new_width, new_height );
-    vox::ren::vertex::ResizeScreen();
+    HRESULT hr{ S_OK };
+    hr = vox::ren::base::ResizeScreen( h_wnd_, new_width, new_height );
+    if ( hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET )
+    {
+        M_LOGERROR( "dx device lost after resize" );
+        vox::logger::GLogger << vox::ren::base::GetDeviceRemovedReason();
+        vox::logger::GLogger.LogDebugString();
+    }
+    vox::ren::vertex::ResizeScreenForChunk();
 }
 
 static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)

@@ -3,9 +3,16 @@
 #include <Windows.h>
 #include <algorithm>
 #include <cmath>
+
 #include "Consts.h"
 #include "Utils.h"
+#include "GameUtils.h"
+#include "Vector.h"
+#include "Logger.h"
+#include "EnumSide.h"
+
 #include "GameCore.h"
+#include "ChunkManager.h"
 
 namespace vox::core::eventhandler {
 
@@ -23,7 +30,17 @@ namespace vox::core::eventhandler {
 
     }
     void OnMouseLPressed( short x, short y ) {
-
+        vox::data::Vector4i bpv;
+        const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
+            vox::core::gamecore::camera.position,
+            vox::core::gamecore::camera.rotation,
+            &bpv
+        );
+        if ( col_side != vox::data::EnumSideCollideResult::FAILED )
+        {
+            vox::core::chunkmanager::GetBlockByPos( bpv )->id = vox::data::EBlockID::AIR;
+            vox::core::chunkmanager::RebuildMeshByBlockPos( bpv );
+        }
     }
     void OnMouseLReleased( short x, short y ) {
 
@@ -35,7 +52,21 @@ namespace vox::core::eventhandler {
 
     }
     void OnMouseRPressed( short x, short y ) {
-
+        vox::data::Vector4i bpv;
+        const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
+            vox::core::gamecore::camera.position,
+            vox::core::gamecore::camera.rotation,
+            &bpv
+        );
+        if ( col_side != vox::data::EnumSideCollideResult::FAILED && col_side != vox::data::EnumSideCollideResult::INSIDE )
+        {
+            const auto side = ToEnumSide( col_side );
+            const auto dbpv = vox::data::EnumSideToVec4i( side );
+            const auto fbpv = vox::data::vector::Add( bpv, dbpv );
+            vox::core::chunkmanager::GetBlockByPos( fbpv )->id =
+                vox::data::EBlockID::SAND;
+            vox::core::chunkmanager::RebuildMeshByBlockPos( fbpv );
+        }
     }
     void OnMouseRReleased( short x, short y ) {
 
@@ -49,12 +80,11 @@ namespace vox::core::eventhandler {
 
     void OnRawMouseInput( int dx, int dy )
     {
-
         vox::core::gamecore::camera.rotation[1] = std::remainder(
             vox::core::gamecore::camera.rotation[1] + (float)(dx) * 0.003f, vox::consts::PI_2
         );
         vox::core::gamecore::camera.rotation[0] = std::clamp(
-            vox::core::gamecore::camera.rotation[0] + (float)(dy) * 0.01f, -vox::consts::PI_DIV2 * 0.6f, vox::consts::PI_DIV2 * 0.6f
+            vox::core::gamecore::camera.rotation[0] - (float)(dy) * 0.003f, -vox::consts::PI_DIV2, vox::consts::PI_DIV2
         );
     }
 
@@ -91,7 +121,7 @@ namespace vox::core::eventhandler {
             {
                 pressed_keys = (pressed_keys | pressed_keys >> 2) & 15;
                 // 0 2 6 0 4 3 5 4 0 1 7 0 0 2 6 0 starting from lsb, 4 bit each
-                int theta_cnt = (int)(441360529944217120LL >> (uint64_t)(pressed_keys * 4U)) & 15;
+                int theta_cnt = (int)(0x0620071045340620LL >> (uint64_t)(pressed_keys * 4U)) & 15;
                 float yaw = vox::core::gamecore::camera.rotation[1];
                 float theta = -yaw + (float)theta_cnt * vox::consts::PI_DIV4;
                 vox::core::gamecore::camera.speed[0] = std::cosf( theta ) * SPD;

@@ -1,5 +1,7 @@
 #pragma once
+
 #include <Windows.h>
+
 #include "Renderer.h"
 
 namespace vox::ren::base
@@ -9,5 +11,6 @@ namespace vox::ren::base
     void Clean();
 
     void Clear();
-    void Present();
+    HRESULT Present();
+    HRESULT GetDeviceRemovedReason();
 }

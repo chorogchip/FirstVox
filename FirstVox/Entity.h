@@ -7,8 +7,8 @@ namespace vox::data
     struct Entity
     {
     public:
-        Vector3 position;
-        Vector3 speed;
-        Vector3 rotation;
+        Vector4f position;
+        Vector4f speed;
+        Vector4f rotation;
     };
 }

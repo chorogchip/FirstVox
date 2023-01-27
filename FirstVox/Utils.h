@@ -4,7 +4,7 @@ namespace vox::utils
 {
     constexpr bool IsPowOf2( int x )
     {
-        return ((x - 1) & x) == 0;
+        return  x != 0 && ((x - 1) & x) == 0;
     }
     
     consteval float Sqrtf(float d)

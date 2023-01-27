@@ -21,14 +21,6 @@ namespace vox::ren::base
     static ID3D11Texture2D* depth_stencil_ = nullptr;
     static ID3D11DepthStencilView* depth_stencil_view_ = nullptr;
 
-    static ID3D11InputLayout* vertex_layout_ = nullptr;
-    static ID3D11Buffer* vertex_buffer_ = nullptr;
-    static ID3D11Buffer* index_buffer_ = nullptr;
-
-    ID3D11Device* get_device()
-    {
-        return d3d_device_;
-    }
     ID3D11DeviceContext* get_immediate_context()
     {
         return immediate_context_;
@@ -250,9 +242,9 @@ namespace vox::ren::base
 
     }
 
-    void Present()
+    HRESULT Present()
     {
-        swap_chain_->Present( 0, 0 );
+        return swap_chain_->Present( 0, 0 );
     }
 
 
@@ -265,5 +257,205 @@ namespace vox::ren::base
             D3D11_CLEAR_DEPTH, 1.0f, 0 );
     }
 
+    HRESULT CreateShaderAndInputLayout(
+        LPCWSTR vs_name, ID3D11VertexShader** pp_vs, ID3D11InputLayout** pp_il,
+        const D3D11_INPUT_ELEMENT_DESC* elem_desc, UINT elem_desc_sz,
+        LPCWSTR ps_name, ID3D11PixelShader** pp_ps)
+    {
+        HRESULT hr{ S_OK };
+
+        UINT vertex_shader_flags = D3DCOMPILE_ENABLE_STRICTNESS;
+#if defined( M_DEBUG )
+        vertex_shader_flags |= D3DCOMPILE_DEBUG;
+#endif
+
+        static constexpr D3D_SHADER_MACRO defines[] = { NULL, NULL };
+        ID3DBlob* vertex_shader_blob = nullptr;
+        ID3DBlob* vertex_shader_error_blob = nullptr;
+        hr = D3DCompileFromFile( vs_name, defines, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            "VS", "vs_4_0", vertex_shader_flags, 0,
+            &vertex_shader_blob, &vertex_shader_error_blob
+        );
+        if ( FAILED( hr ) )
+        {
+            if ( vertex_shader_error_blob )
+            {
+                OutputDebugStringA( (char*)vertex_shader_error_blob->GetBufferPointer() );
+                vertex_shader_error_blob->Release();
+            }
+            if ( vertex_shader_blob )
+            {
+                vertex_shader_blob->Release();
+            }
+            MessageBox( NULL,
+                L"The FX file cannot be compiled. Please run this executable "
+                L"from the directory that contains the FX file.",
+                L"Error", MB_OK );
+            return hr;
+        }
+        hr = d3d_device_->CreateVertexShader(
+            vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(),
+            NULL, pp_vs
+        );
+        if ( FAILED( hr ) )
+        {
+            vertex_shader_blob->Release();
+            return hr;
+        }
+
+        hr = d3d_device_->CreateInputLayout(
+            elem_desc, elem_desc_sz,
+            vertex_shader_blob->GetBufferPointer(), vertex_shader_blob->GetBufferSize(),
+            pp_il
+        );
+        vertex_shader_blob->Release();
+        if (FAILED(hr))
+        {
+            return hr;
+        }
+        //immediate_context_->IASetInputLayout( input_layout1_ );
+
+
+        ID3DBlob* pixel_shader_blob = nullptr;
+        ID3DBlob* pixel_shader_error_blob = nullptr;
+        hr = D3DCompileFromFile( ps_name, defines, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+            "PS", "ps_4_0", vertex_shader_flags, 0,
+            &pixel_shader_blob, &pixel_shader_error_blob
+        );
+        if ( FAILED( hr ) )
+        {
+            if ( pixel_shader_error_blob )
+            {
+                OutputDebugStringA( (char*)pixel_shader_error_blob->GetBufferPointer() );
+                pixel_shader_error_blob->Release();
+            }
+            if ( pixel_shader_blob )
+            {
+                pixel_shader_blob->Release();
+            }
+            MessageBox( NULL,
+                L"The FX file cannot be compiled. Please run this executable "
+                L"from the directory that contains the FX file.",
+                L"Error", MB_OK );
+            return hr;
+        }
+        hr = d3d_device_->CreatePixelShader(
+            pixel_shader_blob->GetBufferPointer(), pixel_shader_blob->GetBufferSize(),
+            NULL, pp_ps
+        );
+        if ( FAILED( hr ) )
+        {
+            vertex_shader_blob->Release();
+            return hr;
+        }
+
+        return hr;
+    }
+
+    HRESULT CreateDefaultBuffer(
+        ID3D11Buffer** pp_buffer, const void* buffer, UINT buffer_size, D3D11_BIND_FLAG flag
+    )
+    {
+        HRESULT hr{ S_OK };
+
+        D3D11_BUFFER_DESC buffer_desc;
+        ZeroMemory( &buffer_desc, sizeof( buffer_desc ) );
+        buffer_desc.Usage = D3D11_USAGE_DEFAULT;
+        buffer_desc.ByteWidth = buffer_size;
+        buffer_desc.BindFlags = flag;
+        buffer_desc.CPUAccessFlags = 0;
+        buffer_desc.StructureByteStride = 0;
+
+        if ( buffer == nullptr )
+        {
+            hr = d3d_device_->CreateBuffer( &buffer_desc, nullptr, pp_buffer );
+        }
+        else
+        {
+            D3D11_SUBRESOURCE_DATA init_data1;
+            ZeroMemory( &init_data1, sizeof( init_data1 ) );
+            init_data1.pSysMem = buffer;
+
+            hr = d3d_device_->CreateBuffer( &buffer_desc, &init_data1, pp_buffer );
+        }
+        if ( FAILED( hr ) )
+        {
+            return hr;
+        }
+
+        return hr;
+    }
+
+
+    HRESULT CreateComplexBuffer(
+        ID3D11Buffer** pp_buffer, UINT buffer_size,
+        D3D11_USAGE usage, D3D11_BIND_FLAG flag, UINT cpu_access_flags
+    )
+    {
+        HRESULT hr{ S_OK };
+
+        D3D11_BUFFER_DESC buffer_desc;
+        ZeroMemory( &buffer_desc, sizeof( buffer_desc ) );
+        buffer_desc.Usage = usage;
+        buffer_desc.ByteWidth = buffer_size;
+        buffer_desc.BindFlags = flag;
+        buffer_desc.CPUAccessFlags = cpu_access_flags;
+        buffer_desc.StructureByteStride = 0;
+
+        hr = d3d_device_->CreateBuffer( &buffer_desc, nullptr, pp_buffer );
+        if ( FAILED( hr ) )
+        {
+            return hr;
+        }
+
+        return hr;
+    }
+
+    HRESULT CreateSampler(ID3D11SamplerState** pp_ss)
+    {
+        HRESULT hr{ S_OK };
+
+        D3D11_SAMPLER_DESC sample_desc;
+        ZeroMemory( &sample_desc, sizeof( sample_desc ) );
+        sample_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
+        sample_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        sample_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        sample_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        sample_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+        sample_desc.MinLOD = 0;
+        sample_desc.MaxLOD = D3D11_FLOAT32_MAX;
+        hr = d3d_device_->CreateSamplerState( &sample_desc, pp_ss );
+        if ( FAILED( hr ) )
+        {
+            return hr;
+        }
+
+        return hr;
+    }
+
+    HRESULT CreateTextureFromImage(const wchar_t* image_name, ID3D11ShaderResourceView** pp_srv)
+    {
+        HRESULT hr{ S_OK };
+
+        DirectX::ScratchImage image;
+        hr = DirectX::LoadFromTGAFile( image_name, DirectX::TGA_FLAGS_NONE, nullptr, image );
+        DirectX::CreateShaderResourceView(
+            d3d_device_, image.GetImages(), image.GetImageCount(), image.GetMetadata(),
+            pp_srv
+        );
+
+        if ( FAILED( hr ) )
+        {
+            return hr;
+        }
+
+        return hr;
+    }
+
+    HRESULT GetDeviceRemovedReason()
+    {
+        return d3d_device_->GetDeviceRemovedReason();
+    }
 
 }
+

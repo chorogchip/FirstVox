@@ -1,5 +1,5 @@
 #pragma once
-#include "Consts.h"
+
 #include "EBlockID.h"
 
 namespace vox::data
@@ -12,9 +12,4 @@ namespace vox::data
         unsigned short data;
     };
 
-    class Chunk
-    {
-    public:
-        Block d[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X];
-    };
 }

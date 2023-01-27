@@ -81,9 +81,6 @@
     <ClInclude Include="Timer.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
-    <ClInclude Include="EnumBlocks.h">
-      <Filter>헤더 파일\Game</Filter>
-    </ClInclude>
     <ClInclude Include="VertexRenderer.h">
       <Filter>헤더 파일\Render</Filter>
     </ClInclude>
@@ -105,11 +102,38 @@
     <ClInclude Include="Entity.h">
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
-    <ClInclude Include="GameDatas.h">
+    <ClInclude Include="Chunk.h">
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
     <ClInclude Include="ChunkManager.h">
-      <Filter>헤더 파일</Filter>
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="GameUtils.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Block.h">
+      <Filter>헤더 파일\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="ChunkVertexBuffer.h">
+      <Filter>헤더 파일\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Logger.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="EnumSide.h">
+      <Filter>헤더 파일\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Perlin.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Point2D.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Rand.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray.h">
+      <Filter>헤더 파일\Data</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -140,12 +164,42 @@
     <ClCompile Include="ChunkManager.cpp">
       <Filter>소스 파일\Core</Filter>
     </ClCompile>
+    <ClCompile Include="Chunk.cpp">
+      <Filter>소스 파일\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="ChunkVertexBuffer.cpp">
+      <Filter>소스 파일\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="EBlockID.cpp">
+      <Filter>소스 파일\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="Logger.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="Perlin.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="Rand.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="Ray.cpp">
+      <Filter>소스 파일\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="GameUtils.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="Shaders\ps1.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
     <FxCompile Include="Shaders\vs1.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\vs_chunk.fx">
+      <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="Shaders\ps_chunk.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

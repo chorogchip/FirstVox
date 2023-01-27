@@ -8,5 +8,5 @@ namespace vox::core::gamecore {
 
     void Init();
     void Update();
-    void Quit();
+    void Clean();
 }
