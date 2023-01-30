@@ -54,13 +54,12 @@ namespace vox::gameutils
             vox::data::vector::SetBroadcast( 0.5f ),
             vox::data::vector::Sub( ray_origin, round_pos )
         );
-        const auto mask_real_rem_len_v_ = vox::data::vector::And(
-            vox::data::vector::CastToVector4f( vox::data::vector::Load( (vox::data::Vector4i*)step ) ),
-            vox::data::vector::SetBroadcast( -1.0f )
-        );
-        const auto real_rem_len_v = vox::data::vector::Sub(
-            vox::data::vector::Mul( rem_len_v, mask_real_rem_len_v_),
-            mask_real_rem_len_v_
+        const auto step_v = vox::data::vector::CastToVector4f( vox::data::vector::Load( (vox::data::Vector4i*)step ) );
+        const auto mask_real_rem_len_v_ = vox::data::vector::And( step_v, vox::data::vector::CastToVector4f( vox::data::vector::SetBroadcast( 0x80000000 ) ) );
+        const auto addd_real_rem_len_v_ = vox::data::vector::And( step_v, vox::data::vector::SetBroadcast( 1.0f ) );
+        const auto real_rem_len_v = vox::data::vector::Add(
+            vox::data::vector::Xor( rem_len_v, mask_real_rem_len_v_),
+            addd_real_rem_len_v_
         );
         const auto tmax_v = vox::data::vector::Mul( tdelta_v, real_rem_len_v );
         vox::data::vector::Store( tmax, tmax_v );

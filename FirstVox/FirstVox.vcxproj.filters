@@ -129,9 +129,6 @@
     <ClInclude Include="Point2D.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
-    <ClInclude Include="Rand.h">
-      <Filter>헤더 파일\Util</Filter>
-    </ClInclude>
     <ClInclude Include="Ray.h">
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
@@ -151,9 +148,6 @@
     </ClCompile>
     <ClCompile Include="Matrix.cpp">
       <Filter>소스 파일\Data</Filter>
-    </ClCompile>
-    <ClCompile Include="Timer.cpp">
-      <Filter>소스 파일\Util</Filter>
     </ClCompile>
     <ClCompile Include="VertexRenderer.cpp">
       <Filter>소스 파일\Render</Filter>
@@ -177,9 +171,6 @@
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
     <ClCompile Include="Perlin.cpp">
-      <Filter>소스 파일\Util</Filter>
-    </ClCompile>
-    <ClCompile Include="Rand.cpp">
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
     <ClCompile Include="Ray.cpp">

@@ -61,15 +61,15 @@ namespace vox::core::chunkmanager
                 const auto adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
                 adjacent_chunks[i] = GetChunkByChunkNum( adjacent_cv );
 
-                static constexpr int zzxx[4] = { 3, 3, 0, 0 };
+                static constexpr int zzxx[4] = { 2, 2, 0, 0 };
                 static constexpr int border[4] = { vox::consts::CHUNK_Z - 1, 0, vox::consts::CHUNK_X - 1, 0 };
 
                 if ( bp[zzxx[i]] == border[i] && adjacent_chunks[i]->IsRenderable() )
                 {
-                    for ( int i = 0; i < 4; ++i )
+                    for ( int j = 0; j < 4; ++j )
                     {
-                        const auto adadjacent_cv = vox::data::vector::Add( adjacent_cv, vox::data::DIRECTION4_V4I[i] );
-                        adadjacent_chunks[i] = GetChunkByChunkNum( adadjacent_cv );
+                        const auto adadjacent_cv = vox::data::vector::Add( adjacent_cv, vox::data::DIRECTION4_V4I[j] );
+                        adadjacent_chunks[j] = GetChunkByChunkNum( adadjacent_cv );
                     }
                     adjacent_chunks[i]->GenerateVertex(
                         adadjacent_chunks[0],
@@ -260,5 +260,23 @@ namespace vox::core::chunkmanager
             }
         }
     }  // void Render();
+
+
+
+    void Init();
+    void Clean();
+    int GetRenderChunkDist();
+    void SetRenderChunkDist( int render_chunk_dist );
+    void Render();
+
+    // assumes input block pos is valid, which means y is in correct range and block's chunk is already loaded
+    vox::data::Block* VEC_CALL GetBlockByBlockPos( vox::data::Vector4i block_pos );
+    // assumes input block pos is valid, which means y is in correct range and block's chunk is already loaded
+    void VEC_CALL SetToRebuildMeshByBlockPos( vox::data::Vector4i block_pos );
+
+    void VEC_CALL RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
+    void VEC_CALL CleanDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
+    void VEC_CALL RegisterStaticChunkLoader( vox::data::Vector4i chunk_loader_pos );
+    void VEC_CALL CleanStaticChunkLoader( vox::data::Vector4i chunk_loader_pos );
 
 }  // namespace

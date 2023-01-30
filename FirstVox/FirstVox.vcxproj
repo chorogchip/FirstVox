@@ -185,7 +185,6 @@
     <ClInclude Include="Matrix.h" />
     <ClInclude Include="Perlin.h" />
     <ClInclude Include="Point2D.h" />
-    <ClInclude Include="Rand.h" />
     <ClInclude Include="Ray.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="Renderer_for_VertexRenderer.h" />
@@ -210,10 +209,8 @@
     <ClCompile Include="Logger.cpp" />
     <ClCompile Include="Matrix.cpp" />
     <ClCompile Include="Perlin.cpp" />
-    <ClCompile Include="Rand.cpp" />
     <ClCompile Include="Ray.cpp" />
     <ClCompile Include="Renderer.cpp" />
-    <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Vector.cpp" />
     <ClCompile Include="VertexRenderer.cpp" />
   </ItemGroup>

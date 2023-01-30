@@ -63,8 +63,7 @@ namespace vox::core::eventhandler {
             const auto side = ToEnumSide( col_side );
             const auto dbpv = vox::data::EnumSideToVec4i( side );
             const auto fbpv = vox::data::vector::Add( bpv, dbpv );
-            vox::core::chunkmanager::GetBlockByPos( fbpv )->id =
-                vox::data::EBlockID::SAND;
+            vox::core::chunkmanager::GetBlockByPos( fbpv )->id = vox::data::EBlockID::SAND;
             vox::core::chunkmanager::RebuildMeshByBlockPos( fbpv );
         }
     }

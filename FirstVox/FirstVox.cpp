@@ -16,7 +16,6 @@
 #include "Consts.h"
 #include "Timer.h"
 #include "Logger.h"
-#include "Rand.h"
 #include "EventHandler.h"
 #include "Renderer_for_Winmain.h"
 #include "VertexRenderer_for_Winmain.h"
