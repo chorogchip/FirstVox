@@ -36,8 +36,24 @@ namespace vox::consts
     static_assert(vox::utils::IsPowOf2( CHUNK_Y ));
     static_assert(MAP_Y % CHUNK_Y == 0);
 
-    constexpr inline float CAM_SPEED = 16.0f;
+    constexpr inline float CAM_SPEED = 32.0f;
+    constexpr inline int INIT_RENDER_DIST = 8;
+    constexpr inline int INIT_LOAD_DIST = INIT_RENDER_DIST + 1;
     constexpr inline int MAX_RENDER_DIST = 15;
+
+    constexpr inline float NEAR_Z = 0.01f;
+    constexpr inline float FAR_Z = (float)((vox::consts::MAX_RENDER_DIST + 3) * vox::consts::CHUNK_X);
+
+    constexpr inline int TICKS_PER_DAY = 3600;
+    constexpr inline int DAYS_PER_YEAR = 360;
+    constexpr inline float LATITUDE = PI_DIV2 * 37.0f / 90.0f;
+    constexpr inline float EARTH_TILT = PI_DIV2 * 23.5f / 90.0f;
+    constexpr inline float SUN_ALTITUDE = FAR_Z * 0.9f;
+
+    constexpr inline float TEX_BLOCK_WID_PIX = 256.0f;
+    constexpr inline float TEX_BLOCK_HEI_PIX = 256.0f;
+    constexpr inline float BLOCK_WID_PIX = 16.0f;
+    constexpr inline float BLOCK_HEI_PIX = 16.0f;
 
     constexpr inline uint64_t GAMESTAT_MOUSEENABLED = 0x1ULL;
 }

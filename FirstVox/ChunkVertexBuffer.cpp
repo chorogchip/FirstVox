@@ -263,15 +263,15 @@ namespace vox::data
 
     void ChunkVertexBuffer::Render( vox::data::Vector4i cv, vox::data::EnumBitSide6 sides ) const
     {
-        vox::data::Vector4f cvf{ cv.ConvertToFloatss() };
-        vox::data::Vector4f multiplier{
+        vox::data::Vector4f cvf = vox::data::vector::ConvertToVector4f( cv );
+        vox::data::Vector4f multiplier = vox::data::vector::Set(
             (float)vox::consts::CHUNK_X,
             (float)vox::consts::CHUNK_Y,
             (float)vox::consts::CHUNK_Z,
             0.0f
-        };
-        float cvfs[4];
-        (cvf * multiplier).ToFloat4( cvfs );
+        );
+        alignas(16) float cvfs[4];
+        vox::data::vector::Store( cvfs, vox::data::vector::Mul( cvf, multiplier ) );
 
         for ( int i = 0; i < (int)vox::data::EnumSide::MAX_COUNT; ++i )
             if ( (int)sides & (1 << i) )

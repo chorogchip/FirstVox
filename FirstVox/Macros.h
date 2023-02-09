@@ -6,6 +6,7 @@
 
 #define VEC_CALL __vectorcall
 #define FORCE_INLINE __forceinline
+#define FALL_THROUGH __fallthrough
 
 #define M_STRINGIZE_DETAIL(x) #x
 #define M_STRINGIZE(x) M_STRINGIZE_DETAIL(x)

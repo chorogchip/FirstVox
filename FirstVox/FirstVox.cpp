@@ -55,7 +55,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     WinInit();
 
     vox::ren::base::Init( h_wnd_ );
-    vox::ren::vertex::InitForChunk( h_wnd_ );
+    vox::ren::vertex::Init( h_wnd_ );
     vox::core::gamecore::Init();
     vox::core::chunkmanager::Init();
 
@@ -81,8 +81,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                     timer.AddTimeMicroSec( vox::consts::MICROSEC_PER_TICK );
 
                     // update
-                    vox::core::eventhandler::Update();
                     vox::core::gamecore::Update();
+                    if ( !(game_states_ & vox::consts::GAMESTAT_MOUSEENABLED) )
+                    {
+                        vox::core::eventhandler::Update();
+                    }
+                    vox::core::chunkmanager::Update();
                 }
                 else goto RENDER_FRAME;
             }
@@ -92,9 +96,9 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
             }
 RENDER_FRAME:
             // render
-            float delta_time = (float)timer.GetElapsedMicroSec().count();
+            float delta_time = (float)timer.GetElapsedMicroSec().count() / 100000.0f;
             vox::ren::base::Clear();
-            vox::ren::vertex::RenderForChunk();
+            vox::ren::vertex::StartRenderChunks( delta_time );
             vox::core::chunkmanager::Render();
             hr = vox::ren::base::Present();
             if ( hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET )
@@ -108,8 +112,7 @@ RENDER_FRAME:
     }
     vox::core::chunkmanager::Clean();
     vox::core::gamecore::Clean();
-
-    vox::ren::vertex::CleanForChunk();
+    vox::ren::vertex::Clean();
     vox::ren::base::Clean();
 
     return (int)msg.wParam;
@@ -170,7 +173,7 @@ static void ResizeRenderer( long new_width, long new_height )
         vox::logger::GLogger << vox::ren::base::GetDeviceRemovedReason();
         vox::logger::GLogger.LogDebugString();
     }
-    vox::ren::vertex::ResizeScreenForChunk();
+    vox::ren::vertex::ResizeScreen();
 }
 
 static BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)

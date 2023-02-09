@@ -1,5 +1,8 @@
 #include "Chunk.h"
 
+#define _CRT_SECURE_NO_WARNINGS
+#include <cstdio>
+
 #include "Perlin.h"
 #include "Logger.h"
 #include "VertexRenderer.h"
@@ -8,18 +11,28 @@
 namespace vox::data
 {
     Chunk::Chunk( vox::data::Vector4i cv ):
-        state_{ EnumChunkStates::VERTEX_NEEDED },
-        cv_{ cv },
-        d_{},
-        vertex_buffer_{}
+        cv_{ cv }, d_{ }, vertex_buffer_{}
+    {}
+
+    void Chunk::Load()
     {
+        char file_name[256];
+        sprintf( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
+        FILE* fp = fopen( file_name, "rb" );
+        if ( fp != nullptr )
+        {
+            fread( this->d_, sizeof( this->d_ ), 1, fp );
+            fclose( fp );
+            return;
+        }
+
         static constexpr float multipliers_stone[3] = { 0.5f, 0.25f, 0.125f };
         vox::rand::perlin::PerlinGeneratorUnit perlin_stone{
-            cv.GetX(), cv.GetZ(), sizeof( multipliers_stone ) / sizeof( float ), multipliers_stone
+            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_stone) / sizeof(float), multipliers_stone
         };
         static constexpr float multipliers_dirt[3] = { 0.375f, 0.25f, 0.125f };
         vox::rand::perlin::PerlinGeneratorUnit perlin_dirt{
-            cv.GetX(), cv.GetZ(), sizeof( multipliers_dirt ) / sizeof( float ), multipliers_dirt,
+            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_dirt) / sizeof(float), multipliers_dirt,
             0x12345678
         };
 
@@ -54,7 +67,7 @@ namespace vox::data
                     block.id = vox::data::EBlockID::DIRT;
                     block.data = 0;
                 }
-                
+
             }
     }
 
@@ -64,7 +77,6 @@ namespace vox::data
             this->cv_, this->d_,
             &front->d_, &back->d_, &right->d_, &left->d_
         );
-        this->state_ = EnumChunkStates::SET;
     }
 
     void Chunk::Render( vox::data::EnumBitSide6 sides )
@@ -72,4 +84,12 @@ namespace vox::data
         this->vertex_buffer_.Render( this->cv_, sides );
     }
 
+    void Chunk::Clear()
+    {
+        char file_name[256];
+        sprintf( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
+        FILE* fp = fopen( file_name, "wb" );
+        fwrite( this->d_, sizeof( this->d_ ), 1, fp );
+        fclose( fp );
+    }
 }

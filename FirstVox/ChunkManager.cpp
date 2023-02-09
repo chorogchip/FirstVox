@@ -1,6 +1,7 @@
 #include "ChunkManager.h"
 
 #include <list>
+#include <vector>
 #include <bit>
 
 #include "Macros.h"
@@ -16,144 +17,152 @@ namespace vox::core::chunkmanager
     static constexpr int GAME_CHUNKS_ARR_WIDTH = 1 << GAME_CHUNKS_ARR_WIDTH_LOG2;
     static constexpr int GAME_CHUNKS_ARR_SZ = GAME_CHUNKS_ARR_WIDTH * GAME_CHUNKS_ARR_WIDTH;
 
-    static int render_chunk_dist_ = 5;
-    static int update_chunk_dist_ = 6;
-    static vox::data::Chunk* game_chunks_arr_[GAME_CHUNKS_ARR_SZ];
-    static std::list<vox::data::Chunk**> game_chunks_render_list_;
+    static int render_chunk_dist_;
+    static vox::data::Vector4i previous_camera_chunk_pos_;
 
-    static FORCE_INLINE vox::data::Chunk*& VEC_CALL GetChunkByChunkNum( vox::data::Vector4i chunk_num )
+    /*
+        청크들은 ChunkNode에 묶여 해쉬 배열로 관리된다.
+        우선 해쉬의 버킷에 아무것도 들어있지 않을 수 있다.
+        또한 다른 스레드에 해당 버킷에 해당하는 청크를 요청했을 경우가 있다. (이 경우를 위해 chunk pos를 chunknode로 옮김, chunk pos를 기록해놔야 돼서)
+        그리고 다른 스레드가 해당 청크의 데이터를 다 읽어온 상태가 있다. chunkmanager에서는 이 상태가 있다면 즉시 다음 상태로 전환한다.
+        또 청크들이 청크로더의 범위 안에 들어와 로딩된 상태가 있다.
+        모든 청크로더가 로딩된 청크의 범위 밖에서 벗어나 
+    */
+    enum class EnumChunkStates
+    {
+        LOAD_NEEDED = 0,
+        LOAD_FINISHED = 1,
+        UPDATED_1 = 2,
+        UPDATED_2 = 3,
+        MASK_MESH = 4,
+        UPDATED_1_MESH = UPDATED_1 | MASK_MESH,
+        UPDATED_2_MESH = UPDATED_2 | MASK_MESH,
+    };
+    struct ChunkNode
+    {
+        ChunkNode* next;
+        EnumChunkStates state;
+        vox::data::Chunk chunk;
+
+        ChunkNode( vox::data::Vector4i cv ) :
+            next{ nullptr },
+            state{ EnumChunkStates::LOAD_NEEDED },
+            chunk{ cv }
+        { }
+
+    };
+    static ChunkNode* game_chunks_arr_[GAME_CHUNKS_ARR_SZ];
+    struct ChunkNodeRenderInfo
+    {
+        ChunkNode* chunk_node;
+        vox::data::EnumBitSide6 sides;
+    };
+    static int game_chunks_load_flag_ = 0;
+    static std::list<ChunkNode**> game_chunks_loaded_list_;
+    static std::vector<ChunkNodeRenderInfo> game_chunks_render_list_;
+
+    struct ChunkLoaderDynamic
+    {
+        vox::data::Vector4f* p_pos;
+        int load_distance;
+    };
+    struct ChunkLoaderStatic
+    {
+        vox::data::Vector4i pos;
+        int load_distance;
+    };
+    static std::vector<ChunkLoaderDynamic> game_chunkloaders_dynamic_;
+    static std::vector<ChunkLoaderStatic> game_chunkloaders_static_;
+    static std::vector<vox::data::Vector4f*> game_chunkloaders_dynamic_remove_;
+    static std::vector<ChunkLoaderStatic> game_chunkloaders_static_remove_;
+
+
+    static FORCE_INLINE vox::data::Vector4i VEC_CALL GetChunkNumByBlockPos( vox::data::Vector4i pos )
+    {
+        static_assert(vox::consts::CHUNK_X_LOG2 == vox::consts::CHUNK_Z_LOG2);
+        const auto sh_res = vox::data::vector::ShiftRightSignExtend( pos, vox::consts::CHUNK_X_LOG2 );
+        const auto mask = vox::data::vector::Set( -1, 0, -1, 0 );
+        return vox::data::vector::And( sh_res, mask );
+    }
+
+    static FORCE_INLINE vox::data::Vector4i VEC_CALL GetBlockRemPosByPos( vox::data::Vector4i pos )
+    {
+        const auto mask = vox::data::vector::Set( vox::consts::CHUNK_X - 1, -1, vox::consts::CHUNK_Z - 1, 0 );
+        return vox::data::vector::And( pos, mask );
+    }
+
+    static FORCE_INLINE ChunkNode* VEC_CALL GetChunkNodeByChunkNum( vox::data::Vector4i chunk_num )
     {
         alignas(16) int gc[4];
         vox::data::vector::Store( (vox::data::Vector4i*)gc, chunk_num );
         const int gcx = gc[0] & (GAME_CHUNKS_ARR_WIDTH - 1);
         const int gcz = gc[2] & (GAME_CHUNKS_ARR_WIDTH - 1);
 
-        return game_chunks_arr_[(gcz << GAME_CHUNKS_ARR_WIDTH_LOG2) + gcx];
-    }
-    // assumes input block pos y is correct
-    vox::data::Block* VEC_CALL GetBlockByPos( vox::data::Vector4i block_pos )
-    {
-        const auto cv = vox::gameutils::GetChunkNumByBlockPos( block_pos );
-        auto& ch = GetChunkByChunkNum( cv );
-        if ( vox::data::vector::Equal( cv, ch->GetChunkPos() ) && ch->IsRenderable() )
+        ChunkNode* cur = game_chunks_arr_[(gcz << GAME_CHUNKS_ARR_WIDTH_LOG2) + gcx];
+        while ( cur != nullptr && !vox::data::vector::Equal( cur->chunk.GetCV(), chunk_num) )
         {
-            alignas(16) int bp[4];
-            vox::data::vector::Store( (vox::data::Vector4i*)bp,
-                vox::gameutils::GetBlockRemPosByPos( block_pos ) );
-            return &ch->At( bp[0], bp[1], bp[2] );
+            cur = cur->next;
         }
-        return nullptr;
+        return cur;
     }
 
-    void VEC_CALL RebuildMeshByBlockPos( vox::data::Vector4i block_pos )
+    static FORCE_INLINE ChunkNode** VEC_CALL GetChunkNodeAddressByChunkNum( vox::data::Vector4i chunk_num )
     {
-        const auto cv = vox::gameutils::GetChunkNumByBlockPos( block_pos );
-        alignas(16) int bp[4];
-        vox::data::vector::Store( (vox::data::Vector4i*)bp,
-            vox::gameutils::GetBlockRemPosByPos( block_pos ) );
-        auto& ch = GetChunkByChunkNum( cv );
-        if ( vox::data::vector::Equal( cv, ch->GetChunkPos() ) && ch->IsRenderable() )
+        alignas(16) int gc[4];
+        vox::data::vector::Store( (vox::data::Vector4i*)gc, chunk_num );
+        const int gcx = gc[0] & (GAME_CHUNKS_ARR_WIDTH - 1);
+        const int gcz = gc[2] & (GAME_CHUNKS_ARR_WIDTH - 1);
+
+        ChunkNode** cur = &game_chunks_arr_[(gcz << GAME_CHUNKS_ARR_WIDTH_LOG2) + gcx];
+        while ( *cur != nullptr && !vox::data::vector::Equal( (*cur)->chunk.GetCV(), chunk_num) )
         {
-            vox::data::Chunk* adjacent_chunks[4];
-            vox::data::Chunk* adadjacent_chunks[4];
-            for ( int i = 0; i < 4; ++i )
-            {
-                const auto adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
-                adjacent_chunks[i] = GetChunkByChunkNum( adjacent_cv );
-
-                static constexpr int zzxx[4] = { 2, 2, 0, 0 };
-                static constexpr int border[4] = { vox::consts::CHUNK_Z - 1, 0, vox::consts::CHUNK_X - 1, 0 };
-
-                if ( bp[zzxx[i]] == border[i] && adjacent_chunks[i]->IsRenderable() )
-                {
-                    for ( int j = 0; j < 4; ++j )
-                    {
-                        const auto adadjacent_cv = vox::data::vector::Add( adjacent_cv, vox::data::DIRECTION4_V4I[j] );
-                        adadjacent_chunks[j] = GetChunkByChunkNum( adadjacent_cv );
-                    }
-                    adjacent_chunks[i]->GenerateVertex(
-                        adadjacent_chunks[0],
-                        adadjacent_chunks[1],
-                        adadjacent_chunks[2],
-                        adadjacent_chunks[3]
-                    );
-                }
-            }
-            // TODO adjacent_chunks can be not loaded so nullptr,
-            // this assume that chunks adjacent to renderable chunk must be already loaded
-            // need to make sure that by making GenerateVertex in chunkmanager layer
-            ch->GenerateVertex(
-                adjacent_chunks[0],
-                adjacent_chunks[1],
-                adjacent_chunks[2],
-                adjacent_chunks[3]
-            );
-
+            cur = &(*cur)->next;
         }
+        return cur;
     }
-    
-    void Init()
-    {
-        const vox::data::Vector4i cam_pos = vox::core::gamecore::camera.position.ConvertToInts();
-        const vox::data::Vector4i cam_chunk_num = vox::gameutils::GetChunkNumByBlockPos( cam_pos );
-        const int rad_sq_ren = render_chunk_dist_ * render_chunk_dist_;
-        const int rad_sq_upd = update_chunk_dist_ * update_chunk_dist_;
 
-        for (int dcz = -update_chunk_dist_; dcz <= update_chunk_dist_; ++dcz)
-            for ( int dcx = -update_chunk_dist_; dcx <= update_chunk_dist_; ++dcx )
+    static FORCE_INLINE void VEC_CALL LoadChunksByChunkLoader( vox::data::Vector4i chunk_num, int load_dist )
+    {
+        const int load_dist_sq = load_dist * load_dist;
+
+        for ( int dcz = -load_dist; dcz <= load_dist; ++dcz )
+            for ( int dcx = -load_dist; dcx <= load_dist; ++dcx )
             {
                 const int dist_sq = dcx * dcx + dcz * dcz;
-                if ( dist_sq <= rad_sq_upd )
+                if ( dist_sq <= load_dist_sq )
                 {
-                    const vox::data::Vector4i dcv{ dcx, 0, dcz, 0 };
-                    const vox::data::Vector4i cv = cam_chunk_num + dcv;
-                    auto& chunk = GetChunkByChunkNum( cv );
-                    chunk = new vox::data::Chunk{ cv };
-                    game_chunks_render_list_.push_back( &chunk );
-                }
-            }
-
-        for (int dcz = -render_chunk_dist_; dcz <= render_chunk_dist_; ++dcz)
-            for ( int dcx = -render_chunk_dist_; dcx <= render_chunk_dist_; ++dcx )
-            {
-                const int dist_sq = dcx * dcx + dcz * dcz;
-                if ( dist_sq <= rad_sq_ren )
-                {
-                    const vox::data::Vector4i dcv{ dcx, 0, dcz, 0 };
-                    const vox::data::Vector4i cv = cam_chunk_num + dcv;
-                    auto& chunk = GetChunkByChunkNum( cv );
-
-                    vox::data::Chunk* adjacent_chunks[4];
-                    for ( int i = 0; i < 4; ++i )
+                    const vox::data::Vector4i dcv = vox::data::vector::Set( dcx, 0, dcz, 0 );
+                    const vox::data::Vector4i cv = vox::data::vector::Add( chunk_num, dcv );
+                    ChunkNode** ch = GetChunkNodeAddressByChunkNum( cv );
+                    if ( *ch == nullptr )
                     {
-                        const vox::data::Vector4i adjacent_cv = cv + vox::data::DIRECTION4_V4I[i];
-                        adjacent_chunks[i] = GetChunkByChunkNum( adjacent_cv );
+                        *ch = new ChunkNode{ cv };
+
+                        // need to give a task to other thread
+                        (*ch)->chunk.Load();
+                        (*ch)->state = EnumChunkStates::LOAD_FINISHED;
                     }
-                    chunk->GenerateVertex(
-                        adjacent_chunks[0],
-                        adjacent_chunks[1],
-                        adjacent_chunks[2],
-                        adjacent_chunks[3]
-                    );
+                    switch ( (*ch)->state )
+                    {
+                    case EnumChunkStates::LOAD_NEEDED:
+                    default:
+                        break;
+                    case EnumChunkStates::LOAD_FINISHED:
+                        game_chunks_loaded_list_.push_back( ch );
+                        //FALL_THROUGH
+                    case EnumChunkStates::UPDATED_1:
+                    case EnumChunkStates::UPDATED_2: 
+                        (*ch)->state = (EnumChunkStates)((int)EnumChunkStates::UPDATED_1 | game_chunks_load_flag_);
+                        break;
+                    case EnumChunkStates::UPDATED_1_MESH:
+                    case EnumChunkStates::UPDATED_2_MESH:
+                        (*ch)->state = (EnumChunkStates)((int)EnumChunkStates::UPDATED_1_MESH | game_chunks_load_flag_);
+                        break;
+                    }
                 }
             }
     }
 
-    void Clean()
-    {
-        for ( int i = 0; i < GAME_CHUNKS_ARR_SZ; ++i )
-        {
-            // need to wait for chunk loading thread for EnumChunkStates::LOADING state
-            auto& chunk = game_chunks_arr_[i];
-            if ( chunk != nullptr )
-            {
-                delete chunk;
-                chunk = nullptr;
-            }
-        }
-        render_chunk_dist_ = 0;
-        game_chunks_render_list_.clear();
-    }
 
     int GetRenderChunkDist()
     {
@@ -162,60 +171,178 @@ namespace vox::core::chunkmanager
 
     void SetRenderChunkDist( int render_chunk_dist )
     {
-
+        render_chunk_dist_ = render_chunk_dist;
     }
-    
-    void Render()
+
+    void Init()
     {
-        const vox::data::Vector4i cam_pos{ vox::core::gamecore::camera.position.ConvertToInts() };
-        const vox::data::Vector4i cam_chunk_num{ vox::gameutils::GetChunkNumByBlockPos( cam_pos ) };
-        const int rad_sq_ren = render_chunk_dist_ * render_chunk_dist_;
-        const int rad_sq_upd = update_chunk_dist_ * update_chunk_dist_;
-
-        for (int dcz = -update_chunk_dist_; dcz <= update_chunk_dist_; ++dcz)
-            for ( int dcx = -update_chunk_dist_; dcx <= update_chunk_dist_; ++dcx )
+        render_chunk_dist_ = vox::consts::INIT_RENDER_DIST;
+        const vox::data::Vector4i cam_pos = vox::data::vector::ConvertToVector4i(
+            vox::data::vector::Round( vox::core::gamecore::camera.position ) );
+        const vox::data::Vector4i cam_chunk_num = GetChunkNumByBlockPos( cam_pos );
+        // this makes chunk render list is updated in the first call of Update()
+        previous_camera_chunk_pos_ = vox::data::vector::Add( cam_chunk_num, vox::data::vector::SetAll14i() );
+        
+        RegisterDynamicChunkLoader( &vox::core::gamecore::camera.position, vox::consts::INIT_LOAD_DIST );
+        
+        // size can be incremented during loop, need to modify when introduced multithread
+        int dyn_i = 0, stt_i = 0;
+        do
+        {
+            if ( dyn_i < game_chunkloaders_dynamic_.size() )
             {
-                const int dist_sq = dcx * dcx + dcz * dcz;
-                if ( dist_sq <= rad_sq_upd )
-                {
-                    const vox::data::Vector4i dcv{ dcx, 0, dcz, 0 };
-                    const vox::data::Vector4i cv{ cam_chunk_num + dcv };
-                    auto& chunk = GetChunkByChunkNum( cv );
+                const vox::data::Vector4i loader_pos = vox::data::vector::ConvertToVector4i(
+                    vox::data::vector::Round( *game_chunkloaders_dynamic_[dyn_i].p_pos )
+                );
+                const vox::data::Vector4i loader_chunk_num = GetChunkNumByBlockPos( loader_pos );
+                LoadChunksByChunkLoader( loader_chunk_num, game_chunkloaders_dynamic_[dyn_i].load_distance );
 
-                    if ( chunk == nullptr )
+                ++dyn_i;
+                continue;
+            }
+            else if ( stt_i < game_chunkloaders_static_.size() )
+            {
+                LoadChunksByChunkLoader( game_chunkloaders_static_[stt_i].pos, game_chunkloaders_static_[stt_i].load_distance);
+
+                ++stt_i;
+                continue;
+            }
+            else break;
+        }
+        while ( true );
+    }
+
+    void Clean()
+    {
+        game_chunks_render_list_.clear();
+        game_chunks_loaded_list_.clear();
+        game_chunkloaders_dynamic_.clear();
+        game_chunkloaders_static_.clear();
+        for ( int i = 0; i < GAME_CHUNKS_ARR_SZ; ++i )
+        {
+            ChunkNode* cur = game_chunks_arr_[i];
+            while ( cur != nullptr )
+            {
+                ChunkNode* const tmp = cur->next;
+                cur->chunk.Clear();
+                delete cur;
+                cur = tmp;
+            }
+            game_chunks_arr_[i] = nullptr;
+        }
+    }
+
+    void Update()
+    {
+        for (int i = 0, sz = (int)game_chunkloaders_dynamic_remove_.size(); i < sz; ++i )
+            for ( auto it = game_chunkloaders_dynamic_.begin(), it_end = game_chunkloaders_dynamic_.end(); it != it_end; ++it)
+                if ( it->p_pos == game_chunkloaders_dynamic_remove_[i] )
+                {
+                    game_chunkloaders_dynamic_.erase( it );
+                    break;
+                }
+        game_chunkloaders_dynamic_remove_.clear();
+
+        for (int i = 0, sz = (int)game_chunkloaders_static_remove_.size(); i < sz; ++i )
+            for (auto it = game_chunkloaders_static_.begin(), it_end = game_chunkloaders_static_.end(); it != it_end; ++it)
+                if ( vox::data::vector::Equal( it->pos, game_chunkloaders_static_remove_[i].pos ) &&
+                    it->load_distance == game_chunkloaders_static_remove_[i].load_distance )
+                {
+                    game_chunkloaders_static_.erase( it );
+                    break;
+                }
+        game_chunkloaders_static_remove_.clear();
+
+
+        game_chunks_load_flag_ ^= 1;
+
+
+        // size can be incremented during loop, need to modify when introduced multithread
+        int dyn_i = 0, stt_i = 0;
+        do
+        {
+            if ( dyn_i < game_chunkloaders_dynamic_.size() )
+            {
+                const vox::data::Vector4i loader_pos = vox::data::vector::ConvertToVector4i(
+                    vox::data::vector::Round( *game_chunkloaders_dynamic_[dyn_i].p_pos )
+                );
+                const vox::data::Vector4i loader_chunk_num = GetChunkNumByBlockPos( loader_pos );
+                LoadChunksByChunkLoader( loader_chunk_num, game_chunkloaders_dynamic_[dyn_i].load_distance );
+
+                ++dyn_i;
+                continue;
+            }
+            else if ( stt_i < game_chunkloaders_static_.size() )
+            {
+                LoadChunksByChunkLoader( game_chunkloaders_static_[stt_i].pos, game_chunkloaders_static_[stt_i].load_distance);
+
+                ++stt_i;
+                continue;
+            }
+            else break;
+        }
+        while ( true );
+
+        
+        for ( auto it = game_chunks_loaded_list_.begin(); it != game_chunks_loaded_list_.end(); )
+        {
+            ChunkNode** ch = *it;
+            if ( ((int)(*ch)->state ^ game_chunks_load_flag_) & 1 )
+            {
+                it = game_chunks_loaded_list_.erase( it );
+                ChunkNode* tmp = *ch;
+                *ch = tmp->next;
+                tmp->chunk.Clear();
+                delete tmp;
+            }
+            else
+            {
+                ++it;
+            }
+        }
+
+
+        render_chunk_dist_ = vox::consts::INIT_RENDER_DIST;
+        const vox::data::Vector4i cam_pos = vox::data::vector::ConvertToVector4i(
+            vox::data::vector::Round( vox::core::gamecore::camera.position ) );
+        const vox::data::Vector4i cam_chunk_num = GetChunkNumByBlockPos( cam_pos );
+
+        static bool to_make_render_list_again = false;
+        if ( to_make_render_list_again || !vox::data::vector::Equal( previous_camera_chunk_pos_, cam_chunk_num ) )
+        {
+            to_make_render_list_again = false;
+            game_chunks_render_list_.clear();
+            previous_camera_chunk_pos_ = cam_chunk_num;
+
+            const int render_dist_sq = render_chunk_dist_ * render_chunk_dist_;
+            for (int dcz = -render_chunk_dist_; dcz <= render_chunk_dist_; ++dcz)
+                for ( int dcx = -render_chunk_dist_; dcx <= render_chunk_dist_; ++dcx )
+                {
+                    const int dist_sq = dcz * dcz + dcx + dcx;
+                    if ( dist_sq <= render_dist_sq )
                     {
-                        chunk = new vox::data::Chunk{ cv };
-                        game_chunks_render_list_.push_back( &chunk );
-                    }
-                    if ( chunk->GetChunkPos() == cv && dist_sq <= rad_sq_ren )
-                    {
-                        if ( !chunk->IsRenderable() )
+                        const auto cv = vox::data::vector::Add( cam_chunk_num, vox::data::vector::Set( dcx, 0, dcz, 0 ) );
+                        ChunkNode* ch = GetChunkNodeByChunkNum( cv );
+                        if ( ch != nullptr && (int)ch->state >= (int)EnumChunkStates::UPDATED_1 )
                         {
-                            vox::data::Chunk* adjacent_chunks[4];
-                            for ( int i = 0; i < 4; ++i )
+                            if ( (int)ch->state < (int)EnumChunkStates::UPDATED_1_MESH )
                             {
-                                auto adjacent_cv = cv + vox::data::DIRECTION4_V4I[i];
-                                vox::data::Chunk*& adjacent_chunk = GetChunkByChunkNum( adjacent_cv );
-                                if ( adjacent_chunk == nullptr )
+                                vox::data::Chunk* adchs[4];
+                                for ( int i = 0; i < 4; ++i )
                                 {
-                                    adjacent_chunk = new vox::data::Chunk{ adjacent_cv };
+                                    const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
+                                    ChunkNode* adch = GetChunkNodeByChunkNum( adjacent_cv );
+                                    if ( adch == nullptr || (int)adch->state < (int)EnumChunkStates::LOAD_FINISHED )
+                                    {
+                                        to_make_render_list_again = true;
+                                        goto DONT_RENDER_THIS_CHUNK;
+                                    }
+                                    adchs[i] = &adch->chunk;
                                 }
-                                else if ( adjacent_chunk->GetChunkPos() != adjacent_cv )
-                                {
-                                    delete adjacent_chunk;
-                                    adjacent_chunk = new vox::data::Chunk{ adjacent_cv };
-                                }
-                                adjacent_chunks[i] = adjacent_chunk;
+                                ch->chunk.GenerateVertex( adchs[0], adchs[1], adchs[2], adchs[3] );
+                                ch->state = (EnumChunkStates)((int)ch->state | (int)EnumChunkStates::MASK_MESH);
                             }
-                            chunk->GenerateVertex(
-                                adjacent_chunks[0],
-                                adjacent_chunks[1],
-                                adjacent_chunks[2],
-                                adjacent_chunks[3]
-                            );
-                        }
-                        if ( chunk->IsRenderable() )
-                        {
+
                             int sides = (int)vox::data::EnumBitSide6::FULL_VALUE;
                             if ( dcz > 0 )
                             {
@@ -234,49 +361,88 @@ namespace vox::core::chunkmanager
                                 sides -= (int)vox::data::EnumBitSide6::LEFT;
                             }
 
-                            chunk->Render( (vox::data::EnumBitSide6)sides );
+                            game_chunks_render_list_.emplace_back( ch, (vox::data::EnumBitSide6)sides );
                         }
+DONT_RENDER_THIS_CHUNK:;
                     }
-                }  // if dist_sq <= rad_sq_upd
-            }  // foreach chunks
-        for ( auto it = game_chunks_render_list_.begin(); it != game_chunks_render_list_.end(); )
-        {
-            auto& chunk = **it;
-            const vox::data::Vector4i chunk_pos{ chunk->GetChunkPos() };
-            const vox::data::Vector4i dcv{ chunk_pos - cam_chunk_num };
-            int dci[4];
-            dcv.ToInt4( dci );
-            const int dist_sq = dci[0] * dci[0] + dci[3] * dci[3];
-
-            if ( dist_sq > rad_sq_upd )
-            {
-                it = game_chunks_render_list_.erase( it );
-                delete chunk;
-                chunk = nullptr;
-            }
-            else
-            {
-                ++it;
-            }
+                }
         }
-    }  // void Render();
+    }
 
+    void Render()
+    {
+        for ( auto o : game_chunks_render_list_ )
+        {
+            o.chunk_node->chunk.Render( o.sides );
+        }
+    }
 
+    vox::data::Block* VEC_CALL GetModifyableBlockByBlockPos( vox::data::Vector4i block_pos )
+    {
+        const auto cv = GetChunkNumByBlockPos( block_pos );
+        ChunkNode* const ch = GetChunkNodeByChunkNum( cv );
+        if ( ch != nullptr )
+        {
+            alignas(16) int bp[4];
+            vox::data::vector::Store( (vox::data::Vector4i*)bp, GetBlockRemPosByPos( block_pos ) );
 
-    void Init();
-    void Clean();
-    int GetRenderChunkDist();
-    void SetRenderChunkDist( int render_chunk_dist );
-    void Render();
+            if ( (int)ch->state & (int)EnumChunkStates::MASK_MESH )
+            {
+                ch->state = (EnumChunkStates)((int)ch->state - (int)EnumChunkStates::MASK_MESH);
+            }
+            static constexpr int zzxx[4] = { 2, 2, 0, 0 };
+            static constexpr int border[4] = { vox::consts::CHUNK_Z - 1, 0, vox::consts::CHUNK_X - 1, 0 };
+            for ( int i = 0; i < 4; ++i )
+                if ( bp[zzxx[i]] == border[i] )
+                {
+                    const vox::data::Vector4i adjacent_cv =
+                        vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
+                    ChunkNode* const adch = GetChunkNodeByChunkNum(
+                        vox::data::vector::Add( cv, adjacent_cv ) );
+                    if ( adch != nullptr && (int)adch->state & (int)EnumChunkStates::MASK_MESH )
+                    {
+                        adch->state = (EnumChunkStates)((int)adch->state - (int)EnumChunkStates::MASK_MESH);
+                    }
+                }
 
-    // assumes input block pos is valid, which means y is in correct range and block's chunk is already loaded
-    vox::data::Block* VEC_CALL GetBlockByBlockPos( vox::data::Vector4i block_pos );
-    // assumes input block pos is valid, which means y is in correct range and block's chunk is already loaded
-    void VEC_CALL SetToRebuildMeshByBlockPos( vox::data::Vector4i block_pos );
+            return &ch->chunk.At( bp[0], bp[1], bp[2] );
+        }
+        return nullptr;
+    }
+    const vox::data::Block* VEC_CALL GetReadonlyBlockByBlockPos( vox::data::Vector4i block_pos )
+    {
+        const auto cv = GetChunkNumByBlockPos( block_pos );
+        const ChunkNode* const ch = GetChunkNodeByChunkNum( cv );
+        if ( ch != nullptr )
+        {
+            alignas(16) int bp[4];
+            vox::data::vector::Store( (vox::data::Vector4i*)bp,
+                GetBlockRemPosByPos( block_pos ) );
+            return &ch->chunk.At( bp[0], bp[1], bp[2] );
+        }
+        return nullptr;
+    }
 
-    void VEC_CALL RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
-    void VEC_CALL CleanDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
-    void VEC_CALL RegisterStaticChunkLoader( vox::data::Vector4i chunk_loader_pos );
-    void VEC_CALL CleanStaticChunkLoader( vox::data::Vector4i chunk_loader_pos );
+    void RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos, int load_distance )
+    {
+        game_chunkloaders_dynamic_.emplace_back( p_chunk_loader_pos, load_distance );
+    }
+
+    // this method cannot be called in init of some object, but in update or clean is ok
+    void CleanDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos )
+    {
+        game_chunkloaders_dynamic_remove_.push_back( p_chunk_loader_pos );
+    }
+
+    void VEC_CALL RegisterStaticChunkLoader( vox::data::Vector4i chunk_loader_pos, int load_distance )
+    {
+        game_chunkloaders_static_.emplace_back( chunk_loader_pos, load_distance );
+    }
+
+    // this method cannot be called in init of some object, but in update or clean is ok
+    void VEC_CALL CleanStaticChunkLoader( vox::data::Vector4i chunk_loader_pos, int load_distance )
+    {
+        game_chunkloaders_static_remove_.emplace_back( chunk_loader_pos, load_distance );
+    }
 
 }  // namespace

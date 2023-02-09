@@ -10,20 +10,15 @@
 
 namespace vox::data
 {
-    enum class EnumChunkStates
-    {
-        VERTEX_NEEDED = 0,
-        SET = 1,
-    };
-
     class Chunk
     {
     private:
-        EnumChunkStates state_;
         vox::data::Vector4i cv_;
         Block d_[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X];
         ChunkVertexBuffer vertex_buffer_;
 
+
+        static_assert(sizeof( vox::data::Block ) == 4);
     public:
         Chunk( vox::data::Vector4i cv );
 
@@ -35,16 +30,14 @@ namespace vox::data
         {
             return this->d_[y][z][x];
         }
-        FORCE_INLINE bool IsRenderable() const
-        {
-            return this->state_ == EnumChunkStates::SET;
-        }
-        FORCE_INLINE vox::data::Vector4i GetChunkPos() const
+        vox::data::Vector4i GetCV() const
         {
             return this->cv_;
         }
 
+        void Load();
         void GenerateVertex( Chunk* front, Chunk* back, Chunk* right, Chunk* left );
         void Render( vox::data::EnumBitSide6 sides );
+        void Clear();
     };
 }

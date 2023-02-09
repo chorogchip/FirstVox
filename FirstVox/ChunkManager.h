@@ -2,7 +2,7 @@
 
 #include "Macros.h"
 #include "Vector.h"
-#include "Chunk.h"
+#include "Block.h"
 
 /*
     청크 매니저는 청크를 관리하면서 청크의 개념을 숨기는 추상화 계층을 제공한다.
@@ -17,19 +17,23 @@
 
 namespace vox::core::chunkmanager
 {
-    void Init();
-    void Clean();
     int GetRenderChunkDist();
     void SetRenderChunkDist( int render_chunk_dist );
+
+    void Init();
+    void Clean();
+    void Update();
     void Render();
 
-    // assumes input block pos is valid, which means y is in correct range and block's chunk is already loaded
-    vox::data::Block* VEC_CALL GetBlockByBlockPos( vox::data::Vector4i block_pos );
-    // assumes input block pos is valid, which means y is in correct range and block's chunk is already loaded
-    void VEC_CALL SetToRebuildMeshByBlockPos( vox::data::Vector4i block_pos );
+    vox::data::Block* VEC_CALL GetModifyableBlockByBlockPos( vox::data::Vector4i block_pos );
+    const vox::data::Block* VEC_CALL GetReadonlyBlockByBlockPos( vox::data::Vector4i block_pos );
 
-    void VEC_CALL RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
-    void VEC_CALL CleanDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
-    void VEC_CALL RegisterStaticChunkLoader( vox::data::Vector4i chunk_loader_pos );
+
+    void RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos, int load_distance );
+    // this method cannot be called in init of some object, but in update or clean is ok
+    void CleanDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
+
+    void VEC_CALL RegisterStaticChunkLoader( vox::data::Vector4i chunk_loader_pos, int load_distance );
+    // this method cannot be called in init of some object, but in update or clean is ok
     void VEC_CALL CleanStaticChunkLoader( vox::data::Vector4i chunk_loader_pos );
 }

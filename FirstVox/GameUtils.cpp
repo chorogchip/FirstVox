@@ -18,7 +18,7 @@ namespace vox::gameutils
         alignas(16) int pos[4];
         vox::data::vector::Storeu( pos,
             vox::data::vector::ConvertToVector4i( round_pos ) );
-
+        
         alignas(16) float ray_rot[4];
         vox::data::vector::Store( ray_rot, ray_rotation );
 
@@ -78,7 +78,7 @@ namespace vox::gameutils
             if ( pos[1] >= 0 || pos[1] < vox::consts::MAP_Y )
             {
                 const auto bpv = vox::data::vector::Load( (vox::data::Vector4i*)pos );
-                const auto block = vox::core::chunkmanager::GetBlockByPos( bpv );
+                const auto block = vox::core::chunkmanager::GetReadonlyBlockByBlockPos( bpv );
                 if ( block == nullptr ) break;
                 if ( block->id != vox::data::EBlockID::AIR )
                 {

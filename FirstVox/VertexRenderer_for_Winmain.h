@@ -4,14 +4,8 @@
 
 namespace vox::ren::vertex
 {
-
-    HRESULT InitForTut( HWND h_wnd_);
-    void CleanForTut();
-    void RenderForTut();
+    HRESULT Init( HWND h_wnd_);
+    void Clean();
+    void StartRenderChunks( float delta_time );
     void ResizeScreen();
-
-    HRESULT InitForChunk( HWND h_wnd_);
-    void CleanForChunk();
-    void RenderForChunk();
-    void ResizeScreenForChunk();
 }

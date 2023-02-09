@@ -21,6 +21,50 @@ namespace vox::core::eventhandler {
         {
         case VK_ESCAPE:
             break;
+        case 'Q':
+            if ( vox::core::gamecore::hand_block != vox::data::EBlockID::AIR )
+            {
+                vox::core::gamecore::hand_block = vox::data::EBlockID::AIR;
+            }
+            else
+            {
+                vox::data::Vector4i bpv;
+                const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
+                    vox::core::gamecore::camera.position,
+                    vox::core::gamecore::camera.rotation,
+                    &bpv
+                );
+                if ( col_side != vox::data::EnumSideCollideResult::FAILED )
+                {
+                    vox::core::gamecore::hand_block =
+                        vox::core::chunkmanager::GetReadonlyBlockByBlockPos( bpv )->id;
+                }
+            }
+            break;
+        case '1':
+            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
+                ((int)vox::core::gamecore::hand_block + 1) %
+                (int)vox::data::EBlockID::MAX_COUNT
+                );
+            break;
+        case '2':
+            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
+                ((int)vox::core::gamecore::hand_block + (int)vox::data::EBlockID::MAX_COUNT - 1) %
+                (int)vox::data::EBlockID::MAX_COUNT
+                );
+            break;
+        case '3':
+            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
+                ((int)vox::core::gamecore::hand_block + 10) %
+                (int)vox::data::EBlockID::MAX_COUNT
+                );
+            break;
+        case '4':
+            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
+                ((int)vox::core::gamecore::hand_block + (int)vox::data::EBlockID::MAX_COUNT - 10) %
+                (int)vox::data::EBlockID::MAX_COUNT
+                );
+            break;
         }
     }
     void OnKeyReleased( char c ) {
@@ -38,8 +82,7 @@ namespace vox::core::eventhandler {
         );
         if ( col_side != vox::data::EnumSideCollideResult::FAILED )
         {
-            vox::core::chunkmanager::GetBlockByPos( bpv )->id = vox::data::EBlockID::AIR;
-            vox::core::chunkmanager::RebuildMeshByBlockPos( bpv );
+            vox::core::chunkmanager::GetModifyableBlockByBlockPos( bpv )->id = vox::data::EBlockID::AIR;
         }
     }
     void OnMouseLReleased( short x, short y ) {
@@ -52,19 +95,21 @@ namespace vox::core::eventhandler {
 
     }
     void OnMouseRPressed( short x, short y ) {
-        vox::data::Vector4i bpv;
-        const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
-            vox::core::gamecore::camera.position,
-            vox::core::gamecore::camera.rotation,
-            &bpv
-        );
-        if ( col_side != vox::data::EnumSideCollideResult::FAILED && col_side != vox::data::EnumSideCollideResult::INSIDE )
+        if ( vox::core::gamecore::hand_block != vox::data::EBlockID::AIR )
         {
-            const auto side = ToEnumSide( col_side );
-            const auto dbpv = vox::data::EnumSideToVec4i( side );
-            const auto fbpv = vox::data::vector::Add( bpv, dbpv );
-            vox::core::chunkmanager::GetBlockByPos( fbpv )->id = vox::data::EBlockID::SAND;
-            vox::core::chunkmanager::RebuildMeshByBlockPos( fbpv );
+            vox::data::Vector4i bpv;
+            const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
+                vox::core::gamecore::camera.position,
+                vox::core::gamecore::camera.rotation,
+                &bpv
+            );
+            if ( col_side != vox::data::EnumSideCollideResult::FAILED && col_side != vox::data::EnumSideCollideResult::INSIDE )
+            {
+                const auto side = ToEnumSide( col_side );
+                const auto dbpv = vox::data::EnumSideToVec4i( side );
+                const auto fbpv = vox::data::vector::Add( bpv, dbpv );
+                vox::core::chunkmanager::GetModifyableBlockByBlockPos( fbpv )->id = vox::core::gamecore::hand_block;
+            }
         }
     }
     void OnMouseRReleased( short x, short y ) {
@@ -79,11 +124,12 @@ namespace vox::core::eventhandler {
 
     void OnRawMouseInput( int dx, int dy )
     {
-        vox::core::gamecore::camera.rotation[1] = std::remainder(
-            vox::core::gamecore::camera.rotation[1] + (float)(dx) * 0.003f, vox::consts::PI_2
+        vox::core::gamecore::camera.rotation.m128_f32[1] = std::remainder(
+            vox::core::gamecore::camera.rotation.m128_f32[1] + (float)(dx) * 0.003f, vox::consts::PI_2
         );
-        vox::core::gamecore::camera.rotation[0] = std::clamp(
-            vox::core::gamecore::camera.rotation[0] - (float)(dy) * 0.003f, -vox::consts::PI_DIV2, vox::consts::PI_DIV2
+        vox::core::gamecore::camera.rotation.m128_f32[0] = std::clamp(
+            vox::core::gamecore::camera.rotation.m128_f32[0] - (float)(dy) * 0.003f,
+            -vox::consts::PI_DIV2, vox::consts::PI_DIV2
         );
     }
 
@@ -114,17 +160,17 @@ namespace vox::core::eventhandler {
             {
                 pressed_keys_y = ((pressed_keys_y ^ 1) - 1) >> 1;
                 float spd_y = (float)pressed_keys_y * SPD;
-                vox::core::gamecore::camera.speed[1] = spd_y;
+                vox::core::gamecore::camera.speed.m128_f32[1] = spd_y;
             }
             if ( pressed_keys & 63 )
             {
                 pressed_keys = (pressed_keys | pressed_keys >> 2) & 15;
                 // 0 2 6 0 4 3 5 4 0 1 7 0 0 2 6 0 starting from lsb, 4 bit each
                 int theta_cnt = (int)(0x0620071045340620LL >> (uint64_t)(pressed_keys * 4U)) & 15;
-                float yaw = vox::core::gamecore::camera.rotation[1];
+                float yaw = ((float*)&vox::core::gamecore::camera.rotation)[1];
                 float theta = -yaw + (float)theta_cnt * vox::consts::PI_DIV4;
-                vox::core::gamecore::camera.speed[0] = std::cosf( theta ) * SPD;
-                vox::core::gamecore::camera.speed[2] = std::sinf( theta ) * SPD;
+                vox::core::gamecore::camera.speed.m128_f32[0] = std::cosf( theta ) * SPD;
+                vox::core::gamecore::camera.speed.m128_f32[2] = std::sinf( theta ) * SPD;
             }
         }
     }
