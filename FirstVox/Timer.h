@@ -4,7 +4,7 @@
 
 #include <chrono>
 
-namespace vox::util
+namespace vox::utils
 {
     class Timer
     {

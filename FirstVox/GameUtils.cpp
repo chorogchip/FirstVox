@@ -104,4 +104,29 @@ namespace vox::gameutils
 
         return vox::data::EnumSideCollideResult::FAILED;
     }
+
+    static const vox::data::Vector4f colors[] = { 
+        vox::data::vector::SetByHexColor(0x0059ff),
+        vox::data::vector::SetByHexColor(0x3bb0ff),
+        vox::data::vector::SetByHexColor(0x3bb0ff),
+        vox::data::vector::SetByHexColor(0x70d4ff),
+        vox::data::vector::SetByHexColor(0xff8400),
+        vox::data::vector::SetByHexColor(0x1c0040),
+        vox::data::vector::SetByHexColor(0x010017),
+        vox::data::vector::SetByHexColor(0x010017),
+        vox::data::vector::SetByHexColor(0x010017),
+    };
+
+    vox::data::Vector4f GetSkyColorBySunAltitude( float altitude )
+    {
+        const float index_f = (1.0f - altitude) * 4.0f;
+        int index = (int)index_f;
+        if ( index < 0 ) index = 0;
+        else if ( index > 7 ) index = 7;
+        const float rem = index_f - (float)index;
+        return vox::data::vector::Add(
+            vox::data::vector::Mul( colors[index], vox::data::vector::SetBroadcast( 1.0f - rem ) ),
+            vox::data::vector::Mul( colors[index + 1], vox::data::vector::SetBroadcast( rem ) )
+        );
+    }
 }

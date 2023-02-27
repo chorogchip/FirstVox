@@ -2,18 +2,21 @@
 
 #include <cmath>
 
+#include "Macros.h"
 #include "Consts.h"
+#include "ConstsTime.h"
 
 namespace vox::core::gamecore
 {
     static uint32_t game_ticks = 0LL;
+    static vox::data::Vector4f sun_vec;
 
     uint32_t GetGameTicks()
     {
         return game_ticks;
     }
 
-    vox::data::Vector4f GetSunVec()
+    static FORCE_INLINE void CalcSunVec()
     {
         const int days = (int)(game_ticks / (uint32_t)vox::consts::TICKS_PER_DAY);
         const int rem_day_ticks = (int)(game_ticks % (uint32_t)vox::consts::TICKS_PER_DAY);
@@ -23,7 +26,7 @@ namespace vox::core::gamecore
 
         const float delta_day = vox::consts::PI_2 * (float)rem_day_ticks / (float)vox::consts::TICKS_PER_DAY;
         const float delta_year = vox::consts::PI_2 * (float)rem_year_ticks / (float)(vox::consts::TICKS_PER_DAY * vox::consts::DAYS_PER_YEAR);
-        
+
         float e_pos[3], s_pos[3], up_pos[3], ex_pos[3];
         e_pos[0] = std::cosf( vox::consts::LATITUDE ) * std::cosf( delta_day );
         e_pos[1] = std::sinf( vox::consts::LATITUDE );
@@ -47,12 +50,17 @@ namespace vox::core::gamecore
         vox::utils::cross3( ex_pos, up_pos, e_pos );
         vox::utils::cross3( up_pos, ex_pos, e_pos );
 
-        return vox::data::vector::Set(
+        sun_vec = vox::data::vector::Set(
             vox::utils::dot3( s_pos, ex_pos ),
             vox::utils::dot3( s_pos, e_pos ),
             vox::utils::dot3( s_pos, up_pos ),
             0.0f
         );
+    }
+
+    vox::data::Vector4f GetSunVec()
+    {
+        return sun_vec;
     }
 
     void Init()
@@ -66,6 +74,8 @@ namespace vox::core::gamecore
     {
         camera.position = vox::data::vector::Add( camera.position, camera.speed );
         camera.speed = vox::data::vector::SetZero4f();
+
+        CalcSunVec();
 
         ++game_ticks;
     }

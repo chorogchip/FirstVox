@@ -14,13 +14,29 @@ struct PS_INPUT
     float2 Tex : TEX;
     float3 Ref : REFLECTED;
     float Diffuse : DIFFUSE;
-    float3 PosWorld : POS_WORLD;
+    float3 PosCamSpace : POS_CAM_SPACE;
 };
 
 float4 PS( PS_INPUT input ) : SV_TARGET
 {
     float ambient = 0.1f;
-    float3 specular = pow( max(0.0f, dot(input.Ref, normalize(-input.PosWorld))), 20.0f);
-    float total_light = saturate( input.Diffuse * 0.5f + ambient + specular * 0.5f);
-    return txDiffuse.Sample( samplerPoint, input.Tex ) * total_light;
+    float specular = 0.0f;
+    if (input.Diffuse > 0.0f)
+    {
+        specular = pow(max(0.0f, dot(input.Ref, normalize(-input.PosCamSpace))), 32);
+    }
+
+    float total_light = input.Diffuse * 0.5f + ambient;
+    float4 litColor = txDiffuse.Sample( samplerPoint, input.Tex ) * total_light + float4(specular, specular, specular, 1.0f) * 0.3f;
+
+    float distFromEye = length( input.PosCamSpace );
+    float fogStart = 200.0f;
+    float fogRange = 60.0f;
+    float4 fogColor = float4(0.3f, 0.5f, 0.8f, 1.0f);
+    float fogLerp = saturate( (distFromEye - fogStart) / fogRange );
+
+    litColor = lerp( litColor, fogColor, fogLerp );
+    litColor.a = 1.0f;
+
+    return litColor;
 }

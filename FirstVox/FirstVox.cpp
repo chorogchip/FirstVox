@@ -21,6 +21,7 @@
 #include "VertexRenderer_for_Winmain.h"
 #include "VertexRenderer.h"
 
+#include "GameUtils.h"
 #include "GameCore.h"
 #include "EventHandler.h"
 #include "ChunkManager.h"
@@ -62,7 +63,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_FIRSTVOX ) );
     HRESULT hr{ S_OK };
     MSG msg{};
-    vox::util::Timer timer{};
+    vox::utils::Timer timer{};
     timer.Start();
 
     while ( WM_QUIT != msg.message )
@@ -97,7 +98,10 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 RENDER_FRAME:
             // render
             float delta_time = (float)timer.GetElapsedMicroSec().count() / 100000.0f;
-            vox::ren::base::Clear();
+            float sun_vec[4];
+            vox::data::vector::Store( sun_vec, vox::core::gamecore::GetSunVec() );
+            vox::data::vector::Store( sun_vec, vox::gameutils::GetSkyColorBySunAltitude( sun_vec[1] ) );
+            vox::ren::base::Clear( sun_vec );
             vox::ren::vertex::StartRenderChunks( delta_time );
             vox::core::chunkmanager::Render();
             hr = vox::ren::base::Present();

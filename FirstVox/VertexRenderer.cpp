@@ -5,6 +5,7 @@
 
 #include "Macros.h"
 #include "Consts.h"
+#include "ConstsTime.h"
 #include "DXHeaders.h"
 #include "Renderer_for_VertexRenderer.h"
 #include"Logger.h"
@@ -218,6 +219,7 @@ namespace vox::ren::vertex
         D3D11_MAPPED_SUBRESOURCE resource;
         ZeroMemory( &resource, sizeof( resource ) );
 
+        HRESULT hr{ S_OK };
         immediate_context_->Map( p_vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource );
         memcpy( resource.pData, vertex_chunk, sizeof(VertexChunk) * size );
         immediate_context_->Unmap( p_vb, 0 );

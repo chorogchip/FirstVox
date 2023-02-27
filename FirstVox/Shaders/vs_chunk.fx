@@ -27,7 +27,7 @@ struct VS_OUTPUT
     float2 Tex : TEX;
     float3 Ref : REFLECTED;
     float Diffuse : DIFFUSE;
-    float3 PosWorld : POS_WORLD;
+    float3 PosCamSpace : POS_CAM_SPACE;
     float4 Pos : SV_POSITION;
 };
 
@@ -36,9 +36,9 @@ VS_OUTPUT VS( VS_INPUT input )
     VS_OUTPUT output = (VS_OUTPUT)0;
     output.Pos = float4( input.Pos, 1.0f );
     output.Pos = mul( output.Pos, World );
-    output.PosWorld = output.Pos - CamPos;
+    output.PosCamSpace = output.Pos - CamPos;
     output.Pos = mul( output.Pos, View );
-
+    
     // earth curvature shader
     /*
     float r = 6371000.0f + output.Pos.y;

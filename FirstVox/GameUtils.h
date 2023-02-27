@@ -13,4 +13,6 @@ namespace vox::gameutils
         vox::data::Vector4f ray_origin, vox::data::Vector4f ray_rotation,
         vox::data::Vector4i* res_pos
     );
+
+    vox::data::Vector4f GetSkyColorBySunAltitude( float altitude );
 }

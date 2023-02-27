@@ -256,6 +256,15 @@ namespace vox::data {
         {
             return _mm_set_ps1( f );
         }
+        FORCE_INLINE Vector4f VEC_CALL SetByHexColor( int u )
+        {
+            return vox::data::vector::Set(
+                (float)(u & 0xff0000) / 16711680.0f,
+                (float)(u & 0x00ff00) / 65280.0f,
+                (float)(u & 0x0000ff) / 255.0f,
+                1.0f
+            );
+        }
         FORCE_INLINE void VEC_CALL Store( float* dest, Vector4f v )
         {
             return _mm_store_ps( dest, v );

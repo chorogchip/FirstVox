@@ -248,9 +248,8 @@ namespace vox::ren::base
     }
 
 
-    void Clear()
+    void Clear( const float* clear_color )
     {
-        static const float clear_color[4] = { 0.3f, 0.5f, 0.8f, 1.0f };
         immediate_context_->ClearRenderTargetView( render_target_view_,
             clear_color );
         immediate_context_->ClearDepthStencilView( depth_stencil_view_,

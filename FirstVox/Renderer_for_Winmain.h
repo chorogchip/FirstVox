@@ -10,7 +10,7 @@ namespace vox::ren::base
     HRESULT ResizeScreen( HWND hwnd, long width, long height );
     void Clean();
 
-    void Clear();
+    void Clear( const float* clear_color );
     HRESULT Present();
     HRESULT GetDeviceRemovedReason();
 }

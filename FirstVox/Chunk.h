@@ -17,7 +17,6 @@ namespace vox::data
         Block d_[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X];
         ChunkVertexBuffer vertex_buffer_;
 
-
         static_assert(sizeof( vox::data::Block ) == 4);
     public:
         Chunk( vox::data::Vector4i cv );
