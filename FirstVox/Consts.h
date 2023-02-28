@@ -12,6 +12,8 @@ namespace vox::consts
     constexpr inline int DEBUG_ENABLED = 0;
 #endif
 
+    constexpr inline unsigned GAME_VERSION = 0x01'01'01'00;
+
     constexpr inline float PI = 3.1415926535f;
     constexpr inline float PI_2 = PI * 2.0f;
     constexpr inline float PI_DIV2 = PI * 0.5f;

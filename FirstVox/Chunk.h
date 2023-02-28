@@ -16,6 +16,7 @@ namespace vox::data
         vox::data::Vector4i cv_;
         Block d_[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X];
         ChunkVertexBuffer vertex_buffer_;
+        bool is_changed_;
 
         static_assert(sizeof( vox::data::Block ) == 4);
     public:
@@ -38,5 +39,6 @@ namespace vox::data
         void GenerateVertex( Chunk* front, Chunk* back, Chunk* right, Chunk* left );
         void Render( vox::data::EnumBitSide6 sides );
         void Clear();
+        void Touch();
     };
 }

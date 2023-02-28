@@ -528,7 +528,7 @@ DONT_RENDER_THIS_CHUNK:;
                         adch->state = (EnumChunkStates)((int)ch->state & 1 | (int)EnumChunkStates::UPDATED_1_MESH_NEEDED);
                     }
                 }
-
+            ch->chunk.Touch();
             return &ch->chunk.At( bp[0], bp[1], bp[2] );
         }
         return nullptr;

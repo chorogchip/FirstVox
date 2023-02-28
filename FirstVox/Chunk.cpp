@@ -10,18 +10,25 @@
 
 namespace vox::data
 {
-    Chunk::Chunk( vox::data::Vector4i cv ):
-        cv_{ cv }, d_{ }, vertex_buffer_{}
+    Chunk::Chunk( vox::data::Vector4i cv ) :
+        cv_{ cv }, d_{ }, vertex_buffer_{}, is_changed_{ false }
     {}
 
     void Chunk::Load()
     {
         char file_name[256];
-        sprintf( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
-        FILE* fp = fopen( file_name, "rb" );
+        sprintf_s( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d.chnk", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
+        FILE *fp;
+        fopen_s( &fp, file_name, "rb" );
         if ( fp != nullptr )
         {
-            fread( this->d_, sizeof( this->d_ ), 1, fp );
+            unsigned version;
+            fread( &version, sizeof( version ), 1, fp );
+            if ( version <= 0xff'ff'ff'ff )
+            {
+                fread( this->d_, sizeof( this->d_ ), 1, fp );
+            }
+            this->is_changed_ = true;
             fclose( fp );
             return;
         }
@@ -86,10 +93,18 @@ namespace vox::data
 
     void Chunk::Clear()
     {
+        if ( !this->is_changed_ ) return;
         char file_name[256];
-        sprintf( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
-        FILE* fp = fopen( file_name, "wb" );
+        sprintf_s( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d.chnk", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
+        FILE *fp;
+        fopen_s( &fp, file_name, "wb" );
+        fwrite( &vox::consts::GAME_VERSION, sizeof( vox::consts::GAME_VERSION ), 1, fp );
         fwrite( this->d_, sizeof( this->d_ ), 1, fp );
         fclose( fp );
+    }
+
+    void Chunk::Touch()
+    {
+        this->is_changed_ = true;
     }
 }
