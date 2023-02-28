@@ -26,7 +26,34 @@ namespace vox::data
             fread( &version, sizeof( version ), 1, fp );
             if ( version <= 0xff'ff'ff'ff )
             {
-                fread( this->d_, sizeof( this->d_ ), 1, fp );
+                int sz;
+                fread( &sz, sizeof( sz ), 1, fp );
+                unsigned short *const data = new unsigned short[sz];
+                const unsigned short *p = data;
+                fread( data, sizeof( unsigned short ), sz, fp );
+                do
+                {
+                    unsigned short rd1 = *p++;
+                    if ( rd1 == (unsigned short)-1 ) break;
+                    unsigned short rd2 = *p++;
+                    unsigned short rd3 = *p++;
+                    this->d_[vox::consts::CHUNK_Y - 1][rd1 & 0xff][(rd1 & 0xff00) >> 8] =
+                        vox::data::Block((vox::data::EBlockID)rd2, rd3);
+                } while ( true );
+                for ( int y = vox::consts::CHUNK_Y - 2; y >= 0; --y )
+                {
+                    memcpy( &this->d_[y][0][0], &this->d_[y + 1][0][0], sizeof( this->d_[y] ) );
+                    do
+                    {
+                        unsigned short rd1 = *p++;
+                        if ( rd1 == (unsigned short)-1 ) break;
+                        unsigned short rd2 = *p++;
+                        unsigned short rd3 = *p++;
+                        this->d_[y][rd1 & 0xff][(rd1 & 0xff00) >> 8] =
+                            vox::data::Block((vox::data::EBlockID)rd2, rd3);
+                    } while ( true );
+                }
+                delete[] data;
             }
             this->is_changed_ = true;
             fclose( fp );
@@ -99,7 +126,38 @@ namespace vox::data
         FILE *fp;
         fopen_s( &fp, file_name, "wb" );
         fwrite( &vox::consts::GAME_VERSION, sizeof( vox::consts::GAME_VERSION ), 1, fp );
-        fwrite( this->d_, sizeof( this->d_ ), 1, fp );
+        
+        std::vector<unsigned short> out;
+        for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
+            for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
+            {
+                const Block &block = this->d_[vox::consts::CHUNK_Y - 1][z][x];
+                if ( block.id != vox::data::EBlockID::AIR || block.data != 0 )
+                {
+                    out.push_back( z | x << 8 );
+                    out.push_back( (unsigned short)block.id );
+                    out.push_back( block.data );
+                }
+            }
+        out.push_back( -1 );
+        for ( int y = vox::consts::CHUNK_Y - 2; y >= 0; --y )
+        {
+            for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
+                for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
+                {
+                    const Block &block = this->d_[y][z][x];
+                    if ( block.id != this->d_[y + 1][z][x].id || block.data != this->d_[y + 1][z][x].data )
+                    {
+                        out.push_back( z | x << 8 );
+                        out.push_back( (unsigned short)block.id );
+                        out.push_back( block.data );
+                    }
+                }
+            out.push_back( -1 );
+        }
+        int sz = out.size();
+        fwrite( &sz, sizeof( sz ), 1, fp );
+        fwrite( &out[0], sizeof( unsigned short ), out.size(), fp );
         fclose( fp );
     }
 
