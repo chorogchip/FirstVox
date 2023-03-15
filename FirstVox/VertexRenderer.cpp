@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 
+#include "FirstVoxHeader.h"
 #include "Macros.h"
 #include "Consts.h"
 #include "ConstsTime.h"
@@ -213,7 +214,7 @@ namespace vox::ren::vertex
     }
 
 
-    void MapVertex( void* p_vertex_buffer, const VertexChunk* vertex_chunk, size_t size )
+    void MapVertex( void* p_vertex_buffer, const VertexChunk* vertex_chunk, size_t vertex_chunk_count )
     {
         ID3D11Buffer* p_vb = (ID3D11Buffer*)p_vertex_buffer;
         D3D11_MAPPED_SUBRESOURCE resource;
@@ -221,7 +222,7 @@ namespace vox::ren::vertex
 
         HRESULT hr{ S_OK };
         immediate_context_->Map( p_vb, 0, D3D11_MAP_WRITE_DISCARD, 0, &resource );
-        memcpy( resource.pData, vertex_chunk, sizeof(VertexChunk) * size );
+        memcpy( resource.pData, vertex_chunk, sizeof(VertexChunk) * vertex_chunk_count );
         immediate_context_->Unmap( p_vb, 0 );
     }
 
@@ -230,7 +231,7 @@ namespace vox::ren::vertex
         HRESULT hr{ S_OK };
         ID3D11Buffer** pp_vb = (ID3D11Buffer**)pp_vertex_buffer;
         hr = vox::ren::base::CreateComplexBuffer(
-            pp_vb, (UINT)(sizeof( VERTICES_BLOCK ) * size),
+            pp_vb, (UINT)size,
             D3D11_USAGE_DYNAMIC, D3D11_BIND_VERTEX_BUFFER, D3D11_CPU_ACCESS_WRITE
         );
         if ( FAILED( hr ) )

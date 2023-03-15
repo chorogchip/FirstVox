@@ -75,12 +75,12 @@ namespace vox::gameutils
         int index = 3;
         for ( int i = 0; i < MAX_RAY_T; ++i )
         {
-            if ( pos[1] >= 0 || pos[1] < vox::consts::MAP_Y )
+            if ( pos[1] >= 0 && pos[1] < vox::consts::MAP_Y )
             {
                 const auto bpv = vox::data::vector::Load( (vox::data::Vector4i*)pos );
-                const auto block = vox::core::chunkmanager::GetReadonlyBlockByBlockPos( bpv );
-                if ( block == nullptr ) break;
-                if ( block->id != vox::data::EBlockID::AIR )
+                const auto block = vox::core::chunkmanager::GetBlock( bpv );
+                if ( block.id == vox::data::EBlockID::MAX_COUNT ) break;
+                if ( block.id != vox::data::EBlockID::AIR )
                 {
                     vox::data::vector::Store( res_pos, bpv );
                     return ret_side_arr[index];

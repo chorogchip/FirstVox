@@ -2,8 +2,8 @@
 
 namespace vox::core::eventhandler {
 
-    void OnKeyPressed( char c );
-    void OnKeyReleased( char c );
+    void OnKeyPressed( unsigned short c );
+    void OnKeyReleased( unsigned short c );
     void OnChar( char c );
     void OnMouseLPressed( short x, short y );
     void OnMouseLReleased( short x, short y );

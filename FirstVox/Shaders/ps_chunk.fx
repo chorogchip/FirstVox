@@ -30,8 +30,8 @@ float4 PS( PS_INPUT input ) : SV_TARGET
     float4 litColor = txDiffuse.Sample( samplerPoint, input.Tex ) * total_light + float4(specular, specular, specular, 1.0f) * 0.3f;
 
     float distFromEye = length( input.PosCamSpace );
-    float fogStart = 200.0f;
-    float fogRange = 60.0f;
+    float fogStart = 512.0f;
+    float fogRange = 256.0f;
     float4 fogColor = float4(0.3f, 0.5f, 0.8f, 1.0f);
     float fogLerp = saturate( (distFromEye - fogStart) / fogRange );
 

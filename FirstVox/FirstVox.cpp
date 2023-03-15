@@ -9,9 +9,11 @@
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
+#include <iostream>
 
 #include "resource.h"
 
+#include "FirstVoxHeader.h"
 #include "Macros.h"
 #include "Consts.h"
 #include "Timer.h"
@@ -40,6 +42,18 @@ const WCHAR* window_title_ = L"Title";
 const WCHAR* window_class_ = L"MyClass";
 static uint64_t game_states_ = 0ULL;
 
+static void FilterError( HRESULT hr )
+{
+    if ( FAILED( hr ) )
+    {
+        std::cout << "hr : " << hr << std::endl;
+        if ( hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET )
+        {
+            std::cout << "dx device lost : " << vox::ren::base::GetDeviceRemovedReason();
+        }
+    }
+}
+
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
                      _In_opt_ HINSTANCE hPrevInstance,
                      _In_ LPWSTR    lpCmdLine,
@@ -48,6 +62,11 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     UNREFERENCED_PARAMETER( hPrevInstance );
     UNREFERENCED_PARAMETER( lpCmdLine );
 
+    if constexpr ( TO_USE_CRTDBG )
+    {
+        _CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+    }
+
     MyRegisterClass(hInstance);
     if ( !InitInstance( hInstance, nCmdShow ) )
     {
@@ -55,13 +74,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     }
     WinInit();
 
-    vox::ren::base::Init( h_wnd_ );
-    vox::ren::vertex::Init( h_wnd_ );
+    FilterError( vox::ren::base::Init( h_wnd_ ) );
+    FilterError( vox::ren::vertex::Init( h_wnd_ ) );
     vox::core::gamecore::Init();
     vox::core::chunkmanager::Init();
 
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_FIRSTVOX ) );
-    HRESULT hr{ S_OK };
     MSG msg{};
     vox::utils::Timer timer{};
     timer.Start();
@@ -104,14 +122,7 @@ RENDER_FRAME:
             vox::ren::base::Clear( sun_vec );
             vox::ren::vertex::StartRenderChunks( delta_time );
             vox::core::chunkmanager::Render();
-            hr = vox::ren::base::Present();
-            if ( hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET )
-            {
-                M_LOGERROR( "dx device lost after present" );
-                vox::logger::GLogger << vox::ren::base::GetDeviceRemovedReason();
-                vox::logger::GLogger.LogDebugString();
-                break;
-            }
+            FilterError( vox::ren::base::Present() );
         }
     }
     vox::core::chunkmanager::Clean();
@@ -256,7 +267,7 @@ static LRESULT CALLBACK WndProc(HWND h_wnd_, UINT message, WPARAM wParam, LPARAM
                 break;
             default:
                 vox::core::eventhandler::OnKeyPressed(
-                    (char)wParam
+                    (unsigned short)wParam
                 );
                 break;
             }
@@ -264,7 +275,7 @@ static LRESULT CALLBACK WndProc(HWND h_wnd_, UINT message, WPARAM wParam, LPARAM
             break;
         case WM_KEYUP:
             vox::core::eventhandler::OnKeyReleased(
-                (char)wParam
+                (unsigned short)wParam
             );
             break;
         case WM_CHAR:

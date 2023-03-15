@@ -25,8 +25,10 @@ namespace vox::core::chunkmanager
     void Update();
     void Render();
 
-    vox::data::Block* VEC_CALL GetModifyableBlockByBlockPos( vox::data::Vector4i block_pos );
-    const vox::data::Block* VEC_CALL GetReadonlyBlockByBlockPos( vox::data::Vector4i block_pos );
+    //vox::data::Block* VEC_CALL GetModifyableBlockByBlockPos( vox::data::Vector4i block_pos );
+    // return Block of id MAX_COUNT if failed
+    vox::data::Block VEC_CALL GetBlock( vox::data::Vector4i block_pos );
+    void VEC_CALL SetBlock( vox::data::Vector4i block_pos, vox::data::Block block );
 
 
     void RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos, int load_distance );

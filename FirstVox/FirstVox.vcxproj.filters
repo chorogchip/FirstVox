@@ -46,6 +46,9 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{c915f479-a800-45ae-a194-4452ec28123b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\GameUtil">
+      <UniqueIdentifier>{47c5da1a-9232-4e63-8ed1-e95c67f481df}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -108,9 +111,6 @@
     <ClInclude Include="ChunkManager.h">
       <Filter>헤더 파일\Core</Filter>
     </ClInclude>
-    <ClInclude Include="GameUtils.h">
-      <Filter>헤더 파일\Util</Filter>
-    </ClInclude>
     <ClInclude Include="Block.h">
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
@@ -136,6 +136,15 @@
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
     <ClInclude Include="ConstsTime.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="GameUtils.h">
+      <Filter>헤더 파일\GameUtil</Filter>
+    </ClInclude>
+    <ClInclude Include="ResizingArray.h">
+      <Filter>헤더 파일\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="FirstVoxHeader.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
   </ItemGroup>
@@ -187,6 +196,9 @@
     </ClCompile>
     <ClCompile Include="Utils.cpp">
       <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="ResizingArray.cpp">
+      <Filter>소스 파일\Data</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

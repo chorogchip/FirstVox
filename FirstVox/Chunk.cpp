@@ -1,17 +1,22 @@
 #include "Chunk.h"
 
-#define _CRT_SECURE_NO_WARNINGS
 #include <cstdio>
 
+#include "FirstVoxHeader.h"
 #include "Perlin.h"
 #include "Logger.h"
+#include "VertexRenderer.h"
 #include "VertexRenderer.h"
 
 
 namespace vox::data
 {
+#define VERTEX_SPEC { sizeof( vox::ren::vertex::VertexChunk ), alignof( vox::ren::vertex::VertexChunk ) }
+
     Chunk::Chunk( vox::data::Vector4i cv ) :
-        cv_{ cv }, d_{ }, vertex_buffer_{}, is_changed_{ false }
+        cv_( cv ), d_id_ {}, d_data_ {},
+        vertex_buffer_temp_ { VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC },
+        vertex_buffer_ {}, is_changed_( false )
     {}
 
     void Chunk::Load()
@@ -26,6 +31,8 @@ namespace vox::data
             fread( &version, sizeof( version ), 1, fp );
             if ( version <= 0xff'ff'ff'ff )
             {
+                static_assert( sizeof( EBlockID ) == sizeof ( unsigned short ));
+
                 int sz;
                 fread( &sz, sizeof( sz ), 1, fp );
                 unsigned short *const data = new unsigned short[sz];
@@ -37,25 +44,28 @@ namespace vox::data
                     if ( rd1 == (unsigned short)-1 ) break;
                     unsigned short rd2 = *p++;
                     unsigned short rd3 = *p++;
-                    this->d_[vox::consts::CHUNK_Y - 1][rd1 & 0xff][(rd1 & 0xff00) >> 8] =
-                        vox::data::Block((vox::data::EBlockID)rd2, rd3);
+                    this->SetBlock( (rd1 & 0xff00) >> 8, vox::consts::CHUNK_Y - 1, rd1 & 0xff,
+                        vox::data::Block( (vox::data::EBlockID)rd2, rd3 ) );
                 } while ( true );
                 for ( int y = vox::consts::CHUNK_Y - 2; y >= 0; --y )
                 {
-                    memcpy( &this->d_[y][0][0], &this->d_[y + 1][0][0], sizeof( this->d_[y] ) );
+                    for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
+                        for (int x = 0; x < vox::consts::CHUNK_X; ++x)
+                        {
+                            this->SetBlock( x, y, z, this->GetBlock( x, y + 1, z ) );
+                        }
                     do
                     {
                         unsigned short rd1 = *p++;
                         if ( rd1 == (unsigned short)-1 ) break;
                         unsigned short rd2 = *p++;
                         unsigned short rd3 = *p++;
-                        this->d_[y][rd1 & 0xff][(rd1 & 0xff00) >> 8] =
-                            vox::data::Block((vox::data::EBlockID)rd2, rd3);
+                        this->SetBlock( (rd1 & 0xff00) >> 8, y, rd1 & 0xff,
+                                       vox::data::Block( (vox::data::EBlockID)rd2, rd3 ) );
                     } while ( true );
                 }
                 delete[] data;
             }
-            this->is_changed_ = true;
             fclose( fp );
             return;
         }
@@ -91,47 +101,36 @@ namespace vox::data
                 int iy = 0;
                 for ( ; iy < rand_height_stone; ++iy )
                 {
-                    Block& block = this->At( ix, iy, iz );
-                    block.id = vox::data::EBlockID::COBBLESTONE;
-                    block.data = 0;
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::COBBLESTONE ) );
                 }
                 for ( ; iy < rand_height_dirt; ++iy )
                 {
-                    Block& block = this->At( ix, iy, iz );
-                    block.id = vox::data::EBlockID::DIRT;
-                    block.data = 0;
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::DIRT ) );
                 }
 
             }
     }
 
-    void Chunk::GenerateVertex( Chunk* front, Chunk* back, Chunk* right, Chunk* left )
-    {
-        this->vertex_buffer_.GenerateVertex(
-            this->cv_, this->d_,
-            &front->d_, &back->d_, &right->d_, &left->d_
-        );
-    }
-
-    void Chunk::Render( vox::data::EnumBitSide6 sides )
-    {
-        this->vertex_buffer_.Render( this->cv_, sides );
-    }
-
     void Chunk::Clear()
     {
+        // start saving
+
         if ( !this->is_changed_ ) return;
         char file_name[256];
         sprintf_s( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d.chnk", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
         FILE *fp;
         fopen_s( &fp, file_name, "wb" );
+        if ( fp == nullptr )
+        {
+            return;
+        }
         fwrite( &vox::consts::GAME_VERSION, sizeof( vox::consts::GAME_VERSION ), 1, fp );
-        
+
         std::vector<unsigned short> out;
         for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
             for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
             {
-                const Block &block = this->d_[vox::consts::CHUNK_Y - 1][z][x];
+                const Block block = this->GetBlock( x, vox::consts::CHUNK_Y - 1, z );
                 if ( block.id != vox::data::EBlockID::AIR || block.data != 0 )
                 {
                     out.push_back( z | x << 8 );
@@ -145,8 +144,9 @@ namespace vox::data
             for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
                 for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
                 {
-                    const Block &block = this->d_[y][z][x];
-                    if ( block.id != this->d_[y + 1][z][x].id || block.data != this->d_[y + 1][z][x].data )
+                    const Block block = this->GetBlock( x, y, z );
+                    const Block block_up = this->GetBlock( x, y + 1, z );
+                    if ( block.id != block_up.id || block.data != block_up.data )
                     {
                         out.push_back( z | x << 8 );
                         out.push_back( (unsigned short)block.id );
@@ -155,10 +155,204 @@ namespace vox::data
                 }
             out.push_back( -1 );
         }
-        int sz = out.size();
+        int sz = (int)out.size();
         fwrite( &sz, sizeof( sz ), 1, fp );
         fwrite( &out[0], sizeof( unsigned short ), out.size(), fp );
         fclose( fp );
+    }
+
+    void Chunk::GenerateVertex( Chunk* front, Chunk* back, Chunk* right, Chunk* left )
+    {
+        for ( int i = 0; i < (int)vox::data::EnumSide::MAX_COUNT; ++i )
+        {
+            vertex_buffer_temp_[i].clear();
+        }
+
+        for ( int iy = 0; iy < vox::consts::CHUNK_Y; ++iy )
+        {
+            for ( int iz = 0; iz < vox::consts::CHUNK_Z; ++iz )
+            {
+                for ( int ix = 0; ix < vox::consts::CHUNK_X; ++ix )
+                {
+                    if ( auto id = this->GetBlockId( ix, iy, iz ); id != EBlockID::AIR )
+                    {
+                        auto& tp = vox::data::GetTexturePos( id );
+                        const float tpx = tp.x;
+                        const float tpz = tp.z;
+
+                        if ( vox::data::IsFullBlock( id ) )
+                        {
+                            if ( iy == vox::consts::CHUNK_Y - 1 || !vox::data::IsFullBlock( this->GetBlockId( ix, iy + 1, iz ) ) )
+                            {
+                                for ( int i = 0; i < 6; ++i )
+                                {
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                    vc.Pos.x += (float)ix;
+                                    vc.Pos.y += (float)iy;
+                                    vc.Pos.z += (float)iz;
+                                    vc.Tex.x += tpx;
+                                    vc.Tex.y += tpz;
+                                    vertex_buffer_temp_[(int)vox::data::EnumSide::UP].push_back( &vc );
+                                }
+                            }
+                            if ( iy == 0 || !vox::data::IsFullBlock( this->GetBlockId( ix, iy - 1, iz ) ) )
+                            {
+                                for ( int i = 6; i < 12; ++i )
+                                {
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                    vc.Pos.x += (float)ix;
+                                    vc.Pos.y += (float)iy;
+                                    vc.Pos.z += (float)iz;
+                                    vc.Tex.x += tpx;
+                                    vc.Tex.y += tpz;
+                                    vertex_buffer_temp_[(int)vox::data::EnumSide::DOWN].push_back( &vc );
+                                }
+                            }
+                            if ( iz == vox::consts::CHUNK_Z - 1 )
+                            {
+                                if ( !vox::data::IsFullBlock( front->GetBlockId( ix, iy, 0 ) ) )
+                                    for ( int i = 12; i < 18; ++i )
+                                    {
+                                        vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                        vc.Pos.x += (float)ix;
+                                        vc.Pos.y += (float)iy;
+                                        vc.Pos.z += (float)iz;
+                                        vc.Tex.x += tpx;
+                                        vc.Tex.y += tpz;
+                                        vertex_buffer_temp_[(int)vox::data::EnumSide::FRONT].push_back( &vc );
+                                    }
+                            }
+                            else if ( !vox::data::IsFullBlock( this->GetBlockId( ix, iy, iz + 1 ) ) )
+                            {
+                                for ( int i = 12; i < 18; ++i )
+                                {
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                    vc.Pos.x += (float)ix;
+                                    vc.Pos.y += (float)iy;
+                                    vc.Pos.z += (float)iz;
+                                    vc.Tex.x += tpx;
+                                    vc.Tex.y += tpz;
+                                    vertex_buffer_temp_[(int)vox::data::EnumSide::FRONT].push_back( &vc );
+                                }
+                            }
+                            if ( iz == 0 )
+                            {
+                                if ( !vox::data::IsFullBlock( back->GetBlockId( ix, iy, vox::consts::CHUNK_Z - 1 ) ) )
+                                    for ( int i = 18; i < 24; ++i )
+                                    {
+                                        vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                        vc.Pos.x += (float)ix;
+                                        vc.Pos.y += (float)iy;
+                                        vc.Pos.z += (float)iz;
+                                        vc.Tex.x += tpx;
+                                        vc.Tex.y += tpz;
+                                        vertex_buffer_temp_[(int)vox::data::EnumSide::BACK].push_back( &vc );
+                                    }
+                            }
+                            else if ( !vox::data::IsFullBlock( this->GetBlockId( ix, iy, iz - 1 ) ) )
+                            {
+                                for ( int i = 18; i < 24; ++i )
+                                {
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                    vc.Pos.x += (float)ix;
+                                    vc.Pos.y += (float)iy;
+                                    vc.Pos.z += (float)iz;
+                                    vc.Tex.x += tpx;
+                                    vc.Tex.y += tpz;
+                                    vertex_buffer_temp_[(int)vox::data::EnumSide::BACK].push_back( &vc );
+                                }
+                            }
+                            if ( ix == vox::consts::CHUNK_X - 1 )
+                            {
+                                if ( !vox::data::IsFullBlock( right->GetBlockId( 0, iy, iz ) ) )
+                                    for ( int i = 24; i < 30; ++i )
+                                    {
+                                        vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                        vc.Pos.x += (float)ix;
+                                        vc.Pos.y += (float)iy;
+                                        vc.Pos.z += (float)iz;
+                                        vc.Tex.x += tpx;
+                                        vc.Tex.y += tpz;
+                                        vertex_buffer_temp_[(int)vox::data::EnumSide::RIGHT].push_back( &vc );
+                                    }
+                            }
+                            else if ( !vox::data::IsFullBlock( this->GetBlockId( ix + 1, iy, iz ) ) )
+                            {
+                                for ( int i = 24; i < 30; ++i )
+                                {
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                    vc.Pos.x += (float)ix;
+                                    vc.Pos.y += (float)iy;
+                                    vc.Pos.z += (float)iz;
+                                    vc.Tex.x += tpx;
+                                    vc.Tex.y += tpz;
+                                    vertex_buffer_temp_[(int)vox::data::EnumSide::RIGHT].push_back( &vc );
+                                }
+                            }
+                            if ( ix == 0 )
+                            {
+                                if ( !vox::data::IsFullBlock( left->GetBlockId( vox::consts::CHUNK_X - 1, iy, iz ) ) )
+                                    for ( int i = 30; i < 36; ++i )
+                                    {
+                                        vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                        vc.Pos.x += (float)ix;
+                                        vc.Pos.y += (float)iy;
+                                        vc.Pos.z += (float)iz;
+                                        vc.Tex.x += tpx;
+                                        vc.Tex.y += tpz;
+                                        vertex_buffer_temp_[(int)vox::data::EnumSide::LEFT].push_back( &vc );
+                                    }
+                            }
+                            else if ( !vox::data::IsFullBlock( this->GetBlockId( ix - 1, iy, iz ) ) )
+                            {
+                                for ( int i = 30; i < 36; ++i )
+                                {
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
+                                    vc.Pos.x += (float)ix;
+                                    vc.Pos.y += (float)iy;
+                                    vc.Pos.z += (float)iz;
+                                    vc.Tex.x += tpx;
+                                    vc.Tex.y += tpz;
+                                    vertex_buffer_temp_[(int)vox::data::EnumSide::LEFT].push_back( &vc );
+                                }
+                            }
+                        }  // if ( vox::data::IsFullBlock( id ) )
+                        else
+                        {
+                            // generate all side
+                            for ( int i = 0; i < 6; ++i )
+                                for ( int j = 0; j < 6; ++j )
+                                {
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i * 6 + j] };
+                                    vc.Pos.x += (float)ix;
+                                    vc.Pos.y += (float)iy;
+                                    vc.Pos.z += (float)iz;
+                                    vc.Tex.x += tpx;
+                                    vc.Tex.y += tpz;
+                                    vertex_buffer_temp_[i].push_back( &vc );
+                                }
+                        }
+                    }
+
+                }  // for x
+            }  // for z
+        }  // for y
+
+        this->MapTempVertexToBuffer();
+    }
+
+    void Chunk::MapTempVertexToBuffer()
+    {
+        this->vertex_buffer_.MapData( vertex_buffer_temp_ );
+        for ( int i = 0; i < (int)vox::data::EnumSide::MAX_COUNT; ++i )
+        {
+            vertex_buffer_temp_[i].clear();
+        }
+    }
+
+    void Chunk::Render( vox::data::EnumBitSide6 sides )
+    {
+        this->vertex_buffer_.Render( this->cv_, sides );
     }
 
     void Chunk::Touch()

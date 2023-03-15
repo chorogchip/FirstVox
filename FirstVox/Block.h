@@ -5,11 +5,13 @@
 namespace vox::data
 {
 
+    typedef unsigned short BlockData;
+
     class Block
     {
     public:
         EBlockID id;
-        unsigned short data;
+        BlockData data;
     };
 
 }

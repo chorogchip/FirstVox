@@ -133,6 +133,7 @@
       <FloatingPointExceptions>false</FloatingPointExceptions>
       <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <TreatWarningAsError>true</TreatWarningAsError>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -172,6 +173,8 @@
     <ClInclude Include="Block.h" />
     <ClInclude Include="ChunkManager.h" />
     <ClInclude Include="ChunkVertexBuffer.h" />
+    <ClInclude Include="FirstVoxHeader.h" />
+    <ClInclude Include="ResizingArray.h" />
     <ClInclude Include="Consts.h" />
     <ClInclude Include="ConstsTime.h" />
     <ClInclude Include="DXHeaders.h" />
@@ -203,6 +206,7 @@
   <ItemGroup>
     <ClCompile Include="ChunkManager.cpp" />
     <ClCompile Include="ChunkVertexBuffer.cpp" />
+    <ClCompile Include="ResizingArray.cpp" />
     <ClCompile Include="EBlockID.cpp" />
     <ClCompile Include="EventHandler.cpp" />
     <ClCompile Include="FirstVox.cpp" />

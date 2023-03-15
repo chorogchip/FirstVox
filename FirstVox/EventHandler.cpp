@@ -16,7 +16,7 @@
 
 namespace vox::core::eventhandler {
 
-    void OnKeyPressed( char c ) {
+    void OnKeyPressed( unsigned short c ) {
         switch ( c )
         {
         case VK_ESCAPE:
@@ -36,8 +36,11 @@ namespace vox::core::eventhandler {
                 );
                 if ( col_side != vox::data::EnumSideCollideResult::FAILED )
                 {
-                    vox::core::gamecore::hand_block =
-                        vox::core::chunkmanager::GetReadonlyBlockByBlockPos( bpv )->id;
+                    const auto blk_id = vox::core::chunkmanager::GetBlock( bpv ).id;
+                    if ( blk_id != vox::data::EBlockID::MAX_COUNT )
+                    {
+                        vox::core::gamecore::hand_block = blk_id;
+                    }
                 }
             }
             break;
@@ -65,9 +68,25 @@ namespace vox::core::eventhandler {
                 (int)vox::data::EBlockID::MAX_COUNT
                 );
             break;
+        case VK_OEM_PLUS:
+            {
+                const auto ren_dist = vox::core::chunkmanager::GetRenderChunkDist();
+                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.position );
+                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.position, ren_dist + 3 );
+                vox::core::chunkmanager::SetRenderChunkDist( ren_dist + 1 );
+            }
+            break;
+        case VK_OEM_MINUS:
+            {
+                const auto ren_dist = vox::core::chunkmanager::GetRenderChunkDist();
+                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.position );
+                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.position, ren_dist + 1 );
+                vox::core::chunkmanager::SetRenderChunkDist( ren_dist - 1 );
+            }
+            break;
         }
     }
-    void OnKeyReleased( char c ) {
+    void OnKeyReleased( unsigned short  c ) {
 
     }
     void OnChar( char c ) {
@@ -82,7 +101,7 @@ namespace vox::core::eventhandler {
         );
         if ( col_side != vox::data::EnumSideCollideResult::FAILED )
         {
-            vox::core::chunkmanager::GetModifyableBlockByBlockPos( bpv )->id = vox::data::EBlockID::AIR;
+            vox::core::chunkmanager::SetBlock( bpv, vox::data::Block( vox::data::EBlockID::AIR ) );
         }
     }
     void OnMouseLReleased( short x, short y ) {
@@ -108,7 +127,12 @@ namespace vox::core::eventhandler {
                 const auto side = ToEnumSide( col_side );
                 const auto dbpv = vox::data::EnumSideToVec4i( side );
                 const auto fbpv = vox::data::vector::Add( bpv, dbpv );
-                vox::core::chunkmanager::GetModifyableBlockByBlockPos( fbpv )->id = vox::core::gamecore::hand_block;
+                const auto y = vox::data::vector::GetY(fbpv);
+                if (y >= 0 && y < vox::consts::MAP_Y)
+                {
+                    vox::core::chunkmanager::SetBlock( fbpv,
+                        vox::data::Block(vox::core::gamecore::hand_block) );
+                }
             }
         }
     }

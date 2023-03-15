@@ -12,7 +12,7 @@ namespace vox::consts
     constexpr inline int DEBUG_ENABLED = 0;
 #endif
 
-    constexpr inline unsigned GAME_VERSION = 0x01'01'01'00;
+    constexpr inline unsigned GAME_VERSION = 0x01'01'02'00;
 
     constexpr inline float PI = 3.1415926535f;
     constexpr inline float PI_2 = PI * 2.0f;
@@ -24,8 +24,8 @@ namespace vox::consts
     constexpr inline auto MICROSEC_PER_TICK = std::chrono::microseconds(1000LL * 1000LL / TPS);
 
     constexpr inline int MAP_Y = 256;
-    constexpr inline int CHUNK_X = 32;
-    constexpr inline int CHUNK_Z = 32;
+    constexpr inline int CHUNK_X = 64;
+    constexpr inline int CHUNK_Z = 64;
     constexpr inline int CHUNK_Y = 256;
     constexpr inline int CHUNK_X_LOG2 = 32 - (int)std::countl_zero( (unsigned)vox::consts::CHUNK_X - 1U );
     constexpr inline int CHUNK_Y_LOG2 = 32 - (int)std::countl_zero( (unsigned)vox::consts::CHUNK_Y - 1U );
@@ -39,12 +39,12 @@ namespace vox::consts
     static_assert(MAP_Y % CHUNK_Y == 0);
 
     constexpr inline float CAM_SPEED = 32.0f;
-    constexpr inline int INIT_RENDER_DIST = 8;
+    constexpr inline int INIT_RENDER_DIST = 12;
     constexpr inline int INIT_LOAD_DIST = INIT_RENDER_DIST + 2;
-    constexpr inline int MAX_RENDER_DIST = 15;
 
+    constexpr inline int MAX_RENDER_DIST = 13;
     constexpr inline float NEAR_Z = 0.01f;
-    constexpr inline float FAR_Z = (float)((vox::consts::MAX_RENDER_DIST + 3) * vox::consts::CHUNK_X);
+    constexpr inline float FAR_Z = (float)((vox::consts::MAX_RENDER_DIST + 2) * vox::consts::CHUNK_X);
 
     constexpr inline float TEX_BLOCK_WID_PIX = 256.0f;
     constexpr inline float TEX_BLOCK_HEI_PIX = 256.0f;

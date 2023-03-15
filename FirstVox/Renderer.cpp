@@ -4,6 +4,7 @@
 
 #include <Windows.h>
 
+#include "FirstVoxHeader.h"
 #include "Macros.h"
 #include "Consts.h"
 #include "DXHeaders.h"

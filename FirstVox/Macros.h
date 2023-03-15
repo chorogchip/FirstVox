@@ -4,6 +4,13 @@
 #define M_DEBUG
 #endif
 
+#if defined max
+#undef max
+#endif
+#if defined min
+#undef min
+#endif
+
 #define VEC_CALL __vectorcall
 #define FORCE_INLINE __forceinline
 #define FALL_THROUGH ////__fallthrough

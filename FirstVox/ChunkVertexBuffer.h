@@ -6,16 +6,16 @@
 #include "Consts.h"
 #include "Block.h"
 #include "EnumSide.h"
+#include "ResizingArray.h"
 
 namespace vox::data
 {
-
     struct ChunkVertexUnit
     {
         void* vertex_buffer;
         int size;
 
-        static constexpr int VERTEX_UNIT_SIZE = 1024 * 6;
+        static constexpr inline int VERTEX_UNIT_SIZE = 1024 * 6;
     };
 
     class ChunkVertexBuffer
@@ -26,16 +26,8 @@ namespace vox::data
         ChunkVertexBuffer();
         ~ChunkVertexBuffer();
 
-        void GenerateVertex(
-            vox::data::Vector4i cv,
-            vox::data::Block d[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X],
-            vox::data::Block (*d_front)[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X],
-            vox::data::Block (*d_back)[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X],
-            vox::data::Block( *d_right )[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X],
-            vox::data::Block( *d_left )[vox::consts::CHUNK_Y][vox::consts::CHUNK_Z][vox::consts::CHUNK_X]
-        );
+        void MapData( ResizingArray( &cpu_vertex_buffer )[(int)vox::data::EnumSide::MAX_COUNT] );
         void Render(vox::data::Vector4i cv, vox::data::EnumBitSide6 sides ) const;
     };
 
 }
-
