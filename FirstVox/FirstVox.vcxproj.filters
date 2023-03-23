@@ -31,9 +31,6 @@
     <Filter Include="헤더 파일\Core">
       <UniqueIdentifier>{bafd8f1c-2856-4596-8622-3dfbf2000068}</UniqueIdentifier>
     </Filter>
-    <Filter Include="헤더 파일\Game">
-      <UniqueIdentifier>{53ab15c1-396d-44d8-bc72-d7847b3af4ac}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\Game">
       <UniqueIdentifier>{83d55dd8-9d9d-43bd-a79a-12c8269221f2}</UniqueIdentifier>
     </Filter>
@@ -45,9 +42,6 @@
     </Filter>
     <Filter Include="Shaders">
       <UniqueIdentifier>{c915f479-a800-45ae-a194-4452ec28123b}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="헤더 파일\GameUtil">
-      <UniqueIdentifier>{47c5da1a-9232-4e63-8ed1-e95c67f481df}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -138,9 +132,6 @@
     <ClInclude Include="ConstsTime.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
-    <ClInclude Include="GameUtils.h">
-      <Filter>헤더 파일\GameUtil</Filter>
-    </ClInclude>
     <ClInclude Include="ResizingArray.h">
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
@@ -154,6 +145,9 @@
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
     <ClInclude Include="Marker.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="GameUtils.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
   </ItemGroup>

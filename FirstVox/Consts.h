@@ -39,7 +39,7 @@ namespace vox::consts
     static_assert(MAP_Y % CHUNK_Y == 0);
 
     constexpr inline float CAM_SPEED = 32.0f;
-    constexpr inline int INIT_RENDER_DIST = 12;
+    constexpr inline int INIT_RENDER_DIST = 4;
     constexpr inline int INIT_LOAD_DIST = INIT_RENDER_DIST + 2;
     constexpr static int MAX_RENDER_DIST = 13;
 

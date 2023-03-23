@@ -96,7 +96,7 @@ namespace vox::core::eventhandler {
         vox::data::Vector4i bpv;
         const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
             vox::core::gamecore::camera.entity.GetPositionVec(),
-            vox::core::gamecore::camera.entity.GetEulerRotationVec(),
+            vox::core::gamecore::camera.entity.GetForwardVec(),
             &bpv
         );
         if ( col_side != vox::data::EnumSideCollideResult::FAILED )
@@ -119,7 +119,7 @@ namespace vox::core::eventhandler {
             vox::data::Vector4i bpv;
             const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
                 vox::core::gamecore::camera.entity.GetPositionVec(),
-                vox::core::gamecore::camera.entity.GetEulerRotationVec(),
+                vox::core::gamecore::camera.entity.GetForwardVec(),
                 &bpv
             );
             if ( col_side != vox::data::EnumSideCollideResult::FAILED && col_side != vox::data::EnumSideCollideResult::INSIDE )

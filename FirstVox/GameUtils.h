@@ -10,7 +10,7 @@ namespace vox::gameutils
 
     // returns -1 if failed, returns 6 if ray is in hit block
     vox::data::EnumSideCollideResult VEC_CALL GetRayFirstCollidingBlockPos(
-        vox::data::Vector4f ray_origin, vox::data::Vector4f ray_rotation,
+        vox::data::Vector4f ray_origin, vox::data::Vector4f ray_direction,
         vox::data::Vector4i* res_pos
     );
 

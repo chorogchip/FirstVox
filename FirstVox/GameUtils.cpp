@@ -10,7 +10,7 @@ namespace vox::gameutils
 {
     // returns -1 if failed, returns 6 if ray is in hit block
     vox::data::EnumSideCollideResult VEC_CALL GetRayFirstCollidingBlockPos(
-        vox::data::Vector4f ray_origin, vox::data::Vector4f ray_rotation,
+        vox::data::Vector4f ray_origin, vox::data::Vector4f ray_direction,
         vox::data::Vector4i* res_pos
     )
     {
@@ -19,18 +19,7 @@ namespace vox::gameutils
         vox::data::vector::Storeu( pos,
             vox::data::vector::ConvertToVector4i( round_pos ) );
         
-        alignas(16) float ray_rot[4];
-        vox::data::vector::Store( ray_rot, ray_rotation );
-
-        const float costh = std::cos( ray_rot[0] );
-        alignas(16) const float tlength[4] = {
-            -costh * std::sin( ray_rot[1] ),
-            std::sin( ray_rot[0] ),
-            costh * std::cos( ray_rot[1] ),
-            0.0f
-        };
-
-        const auto len_v = vox::data::vector::Load( tlength );
+        const auto len_v = ray_direction;
         alignas(16) float tdelta[4];
         const auto mask_v = vox::data::vector::Set1sIfEqual( len_v, vox::data::vector::SetZero4f() );
         const auto lenres_v = vox::data::vector::Add( len_v,
