@@ -3,6 +3,7 @@
 #include "Macros.h"
 #include "Vector.h"
 #include "Block.h"
+#include "Entity.h"
 
 /*
     청크 매니저는 청크를 관리하면서 청크의 개념을 숨기는 추상화 계층을 제공한다.
@@ -31,9 +32,9 @@ namespace vox::core::chunkmanager
     void VEC_CALL SetBlock( vox::data::Vector4i block_pos, vox::data::Block block );
 
 
-    void RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos, int load_distance );
+    void RegisterDynamicChunkLoader( vox::data::Entity* p_chunk_loader, int load_distance );
     // this method cannot be called in init of some object, but in update or clean is ok
-    void CleanDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos );
+    void CleanDynamicChunkLoader( vox::data::Entity* p_chunk_loader );
 
     void VEC_CALL RegisterStaticChunkLoader( vox::data::Vector4i chunk_loader_pos, int load_distance );
     // this method cannot be called in init of some object, but in update or clean is ok

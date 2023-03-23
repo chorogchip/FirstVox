@@ -69,7 +69,7 @@ namespace vox::core::chunkmanager
 
     struct ChunkLoaderDynamic
     {
-        vox::data::Vector4f* p_pos;
+        vox::data::Entity* p_pos;
         int load_distance;
     };
     struct ChunkLoaderStatic
@@ -79,7 +79,7 @@ namespace vox::core::chunkmanager
     };
     static std::vector<ChunkLoaderDynamic> game_chunkloaders_dynamic_;
     static std::vector<ChunkLoaderStatic> game_chunkloaders_static_;
-    static std::vector<vox::data::Vector4f*> game_chunkloaders_dynamic_remove_;
+    static std::vector<vox::data::Entity*> game_chunkloaders_dynamic_remove_;
     static std::vector<ChunkLoaderStatic> game_chunkloaders_static_remove_;
 
 
@@ -262,10 +262,10 @@ namespace vox::core::chunkmanager
     {
         chunk_render_dist_ = vox::consts::INIT_RENDER_DIST;
         const vox::data::Vector4i cam_pos = vox::data::vector::ConvertToVector4i(
-            vox::data::vector::Round( vox::core::gamecore::camera.position ) );
+            vox::data::vector::Round( vox::core::gamecore::camera.entity.GetPositionVec() ) );
         const vox::data::Vector4i cam_chunk_num = GetChunkNumByBlockPos( cam_pos );
         
-        RegisterDynamicChunkLoader( &vox::core::gamecore::camera.position, vox::consts::INIT_LOAD_DIST );
+        RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, vox::consts::INIT_LOAD_DIST);
 
         chunk_load_thread_ = std::thread(ChunkLoadThreadLoop);
 
@@ -276,7 +276,7 @@ namespace vox::core::chunkmanager
             if ( dyn_i < game_chunkloaders_dynamic_.size() )
             {
                 const vox::data::Vector4i loader_pos = vox::data::vector::ConvertToVector4i(
-                    vox::data::vector::Round( *game_chunkloaders_dynamic_[dyn_i].p_pos )
+                    vox::data::vector::Round( game_chunkloaders_dynamic_[dyn_i].p_pos->GetPositionVec() )
                 );
                 const vox::data::Vector4i loader_chunk_num = GetChunkNumByBlockPos( loader_pos );
                 LoadChunksByChunkLoader( loader_chunk_num, game_chunkloaders_dynamic_[dyn_i].load_distance );
@@ -352,7 +352,7 @@ namespace vox::core::chunkmanager
             if ( dyn_i < game_chunkloaders_dynamic_.size() )
             {
                 const vox::data::Vector4i loader_pos = vox::data::vector::ConvertToVector4i(
-                    vox::data::vector::Round( *game_chunkloaders_dynamic_[dyn_i].p_pos )
+                    vox::data::vector::Round( game_chunkloaders_dynamic_[dyn_i].p_pos->GetPositionVec() )
                 );
                 const vox::data::Vector4i loader_chunk_num = GetChunkNumByBlockPos( loader_pos );
                 LoadChunksByChunkLoader( loader_chunk_num, game_chunkloaders_dynamic_[dyn_i].load_distance );
@@ -372,7 +372,7 @@ namespace vox::core::chunkmanager
 
         UpdateChunksToClear();
 
-        const auto cam_pos_f = vox::core::gamecore::camera.position;
+        const auto cam_pos_f = vox::core::gamecore::camera.entity.GetPositionVec();
         const auto cam_pos = vox::data::vector::ConvertToVector4i( vox::data::vector::Round( cam_pos_f ) );
         const auto cam_chunk_num = GetChunkNumByBlockPos( cam_pos );
 
@@ -509,15 +509,15 @@ DONT_RENDER_THIS_CHUNK:;
         return vox::data::Block( vox::data::EBlockID::MAX_COUNT );
     }
 
-    void RegisterDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos, int load_distance )
+    void RegisterDynamicChunkLoader( vox::data::Entity* p_chunk_loader, int load_distance )
     {
-        game_chunkloaders_dynamic_.emplace_back( p_chunk_loader_pos, load_distance );
+        game_chunkloaders_dynamic_.emplace_back( p_chunk_loader, load_distance );
     }
 
     // this method cannot be called in init of some object, but in update or clean is ok
-    void CleanDynamicChunkLoader( vox::data::Vector4f* p_chunk_loader_pos )
+    void CleanDynamicChunkLoader( vox::data::Entity* p_chunk_loader )
     {
-        game_chunkloaders_dynamic_remove_.push_back( p_chunk_loader_pos );
+        game_chunkloaders_dynamic_remove_.push_back( p_chunk_loader );
     }
 
     void VEC_CALL RegisterStaticChunkLoader( vox::data::Vector4i chunk_loader_pos, int load_distance )

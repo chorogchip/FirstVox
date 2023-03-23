@@ -1,0 +1,3 @@
+#pragma once
+
+#define USING_SIMD_PTR_TO_PRIMITIVE_PTR_TRICK 

@@ -3,10 +3,11 @@
 #include "Vector.h"
 #include "Entity.h"
 #include "EBlockID.h"
+#include "Camera.h"
 
 namespace vox::core::gamecore {
 
-    inline vox::data::Entity camera;
+    inline vox::core::camera::Camera camera;
     inline vox::data::EBlockID hand_block = vox::data::EBlockID::GRASS;
 
     uint32_t GetGameTicks();

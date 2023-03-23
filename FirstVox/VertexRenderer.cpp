@@ -98,9 +98,9 @@ namespace vox::ren::vertex
             L"Textures/block_textures.tga", &chunk_texture_rv_
         ) );
 
-        mat_chunk_projection_ = DirectX::XMMatrixPerspectiveFovLH( DirectX::XM_PIDIV4,
+        mat_chunk_projection_ = DirectX::XMMatrixPerspectiveFovLH( vox::core::gamecore::camera.GetFovY(),
             (float)vox::ren::base::GetScreenWidth() / (float)vox::ren::base::GetScreenHeight(),
-            vox::consts::NEAR_Z, vox::consts::FAR_Z
+            vox::core::gamecore::camera.GetNearZ(), vox::core::gamecore::camera.GetFarZ()
         );
         CBChunkChangesOnResize cb_changes_on_resize;
         cb_changes_on_resize.mat_projection = DirectX::XMMatrixTranspose( mat_chunk_projection_ );
@@ -144,9 +144,9 @@ namespace vox::ren::vertex
             return;
         }
 
-        mat_chunk_projection_ = DirectX::XMMatrixPerspectiveFovLH( DirectX::XM_PIDIV4,
+        mat_chunk_projection_ = DirectX::XMMatrixPerspectiveFovLH( vox::core::gamecore::camera.GetFovY(),
             (float)vox::ren::base::GetScreenWidth() / (float)vox::ren::base::GetScreenHeight(),
-            vox::consts::NEAR_Z, vox::consts::FAR_Z
+            vox::core::gamecore::camera.GetNearZ(), vox::core::gamecore::camera.GetFarZ()
         );
 
         CBChunkChangesOnResize cb_changes_on_resize;
@@ -157,12 +157,12 @@ namespace vox::ren::vertex
     void StartRenderChunks( float delta_time )
     {
         const auto cam_pos_delta = vox::data::vector::Add(
-            vox::core::gamecore::camera.position, vox::data::vector::Mul(
-                vox::core::gamecore::camera.speed, vox::data::vector::SetBroadcast(
+            vox::core::gamecore::camera.entity.GetPositionVec(), vox::data::vector::Mul(
+                vox::core::gamecore::camera.entity.GetSpeedVec(), vox::data::vector::SetBroadcast(
                     delta_time ) ) );
         alignas(16) float vec_rot[4];
-        vox::data::vector::Store( vec_rot, vox::core::gamecore::camera.rotation );
-        auto mat_cam_rot_t = DirectX::XMMatrixTranspose( DirectX::XMMatrixRotationRollPitchYaw( -vec_rot[0], vec_rot[1], -vec_rot[2] ) );
+        vox::data::vector::Store( vec_rot, vox::core::gamecore::camera.entity.GetEulerRotationVec() );
+        auto mat_cam_rot_t = DirectX::XMMatrixTranspose( DirectX::XMMatrixRotationRollPitchYaw( -vec_rot[0], -vec_rot[1], -vec_rot[2] ) );
         auto mat_cam_pos_t = DirectX::XMMatrixIdentity();
         mat_cam_pos_t.r[3] = vox::data::vector::Sub( vox::data::vector::Set( 0.0f, 0.0f, 0.0f, 1.0f ), cam_pos_delta );
 

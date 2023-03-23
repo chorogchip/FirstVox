@@ -24,7 +24,7 @@ namespace vox::gameutils
 
         const float costh = std::cos( ray_rot[0] );
         alignas(16) const float tlength[4] = {
-            costh * std::sin( ray_rot[1] ),
+            -costh * std::sin( ray_rot[1] ),
             std::sin( ray_rot[0] ),
             costh * std::cos( ray_rot[1] ),
             0.0f

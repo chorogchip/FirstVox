@@ -147,6 +147,15 @@
     <ClInclude Include="FirstVoxHeader.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
+    <ClInclude Include="Camera.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="Shapes.h">
+      <Filter>헤더 파일\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="Marker.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FirstVox.cpp">
@@ -198,6 +207,15 @@
       <Filter>소스 파일\Util</Filter>
     </ClCompile>
     <ClCompile Include="ResizingArray.cpp">
+      <Filter>소스 파일\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="Camera.cpp">
+      <Filter>소스 파일\Core</Filter>
+    </ClCompile>
+    <ClCompile Include="Shapes.cpp">
+      <Filter>소스 파일\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="Entity.cpp">
       <Filter>소스 파일\Data</Filter>
     </ClCompile>
   </ItemGroup>

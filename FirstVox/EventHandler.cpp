@@ -30,8 +30,8 @@ namespace vox::core::eventhandler {
             {
                 vox::data::Vector4i bpv;
                 const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
-                    vox::core::gamecore::camera.position,
-                    vox::core::gamecore::camera.rotation,
+                    vox::core::gamecore::camera.entity.GetPositionVec(),
+                    vox::core::gamecore::camera.entity.GetEulerRotationVec(),
                     &bpv
                 );
                 if ( col_side != vox::data::EnumSideCollideResult::FAILED )
@@ -71,16 +71,16 @@ namespace vox::core::eventhandler {
         case VK_OEM_PLUS:
             {
                 const auto ren_dist = vox::core::chunkmanager::GetRenderChunkDist();
-                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.position );
-                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.position, ren_dist + 3 );
+                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.entity );
+                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, ren_dist + 3);
                 vox::core::chunkmanager::SetRenderChunkDist( ren_dist + 1 );
             }
             break;
         case VK_OEM_MINUS:
             {
                 const auto ren_dist = vox::core::chunkmanager::GetRenderChunkDist();
-                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.position );
-                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.position, ren_dist + 1 );
+                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.entity );
+                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, ren_dist + 1);
                 vox::core::chunkmanager::SetRenderChunkDist( ren_dist - 1 );
             }
             break;
@@ -95,8 +95,8 @@ namespace vox::core::eventhandler {
     void OnMouseLPressed( short x, short y ) {
         vox::data::Vector4i bpv;
         const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
-            vox::core::gamecore::camera.position,
-            vox::core::gamecore::camera.rotation,
+            vox::core::gamecore::camera.entity.GetPositionVec(),
+            vox::core::gamecore::camera.entity.GetEulerRotationVec(),
             &bpv
         );
         if ( col_side != vox::data::EnumSideCollideResult::FAILED )
@@ -118,8 +118,8 @@ namespace vox::core::eventhandler {
         {
             vox::data::Vector4i bpv;
             const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
-                vox::core::gamecore::camera.position,
-                vox::core::gamecore::camera.rotation,
+                vox::core::gamecore::camera.entity.GetPositionVec(),
+                vox::core::gamecore::camera.entity.GetEulerRotationVec(),
                 &bpv
             );
             if ( col_side != vox::data::EnumSideCollideResult::FAILED && col_side != vox::data::EnumSideCollideResult::INSIDE )
@@ -148,13 +148,8 @@ namespace vox::core::eventhandler {
 
     void OnRawMouseInput( int dx, int dy )
     {
-        vox::core::gamecore::camera.rotation.m128_f32[1] = std::remainder(
-            vox::core::gamecore::camera.rotation.m128_f32[1] + (float)(dx) * 0.003f, vox::consts::PI_2
-        );
-        vox::core::gamecore::camera.rotation.m128_f32[0] = std::clamp(
-            vox::core::gamecore::camera.rotation.m128_f32[0] - (float)(dy) * 0.003f,
-            -vox::consts::PI_DIV2, vox::consts::PI_DIV2
-        );
+        vox::core::gamecore::camera.entity.RotateY( dx * -0.003f );
+        vox::core::gamecore::camera.entity.RotateXClamp( dy * -0.003f );
     }
 
     void Update()
@@ -180,22 +175,23 @@ namespace vox::core::eventhandler {
 
             constexpr float SPD = vox::consts::CAM_SPEED / (float)vox::consts::TPS;
 
+            alignas(16) float spd[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
             if ( int pressed_keys_y = pressed_keys >> 8 )
             {
                 pressed_keys_y = ((pressed_keys_y ^ 1) - 1) >> 1;
-                float spd_y = (float)pressed_keys_y * SPD;
-                vox::core::gamecore::camera.speed.m128_f32[1] = spd_y;
+                spd[1] = (float)pressed_keys_y * SPD;
             }
             if ( pressed_keys & 63 )
             {
                 pressed_keys = (pressed_keys | pressed_keys >> 2) & 15;
                 // 0 2 6 0 4 3 5 4 0 1 7 0 0 2 6 0 starting from lsb, 4 bit each
                 int theta_cnt = (int)(0x0620071045340620LL >> (uint64_t)(pressed_keys * 4U)) & 15;
-                float yaw = ((float*)&vox::core::gamecore::camera.rotation)[1];
-                float theta = -yaw + (float)theta_cnt * vox::consts::PI_DIV4;
-                vox::core::gamecore::camera.speed.m128_f32[0] = std::cosf( theta ) * SPD;
-                vox::core::gamecore::camera.speed.m128_f32[2] = std::sinf( theta ) * SPD;
+                float yaw = vox::core::gamecore::camera.entity.GetRotationY();
+                float theta = yaw + (float)theta_cnt * vox::consts::PI_DIV4;
+                spd[0] = std::cosf( theta ) * SPD;
+                spd[2] = std::sinf( theta ) * SPD;
             }
+            vox::core::gamecore::camera.entity.SetSpeed( vox::data::vector::Load( spd ) );
         }
     }
 }

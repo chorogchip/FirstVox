@@ -65,15 +65,14 @@ namespace vox::core::gamecore
 
     void Init()
     {
-        camera.position = vox::data::Vector4f{ 0.0f, 40.0f, -6.0f, 0.0f };
-        camera.speed = vox::data::Vector4f{ 0.0f, 0.0f, 0.0f, 0.0f };
-        camera.rotation = vox::data::Vector4f{ 0.0f, 0.0f, 0.0f, 0.0f };
+        camera.entity.SetPosition( vox::data::vector::Set( 0.0f, 40.0f, -6.0f, 0.0f ) );
+        camera.entity.SetSpeed( vox::data::vector::Set( 0.0f, 0.0f, 0.0f, 0.0f ) );
     }
 
     void Update()
     {
-        camera.position = vox::data::vector::Add( camera.position, camera.speed );
-        camera.speed = vox::data::vector::SetZero4f();
+        camera.entity.SetPosition( vox::data::vector::Add( camera.entity.GetPositionVec(), camera.entity.GetSpeedVec() ) );
+        camera.entity.SetSpeed( vox::data::vector::SetZero4f() );
 
         CalcSunVec();
 

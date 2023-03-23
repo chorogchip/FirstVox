@@ -41,10 +41,7 @@ namespace vox::consts
     constexpr inline float CAM_SPEED = 32.0f;
     constexpr inline int INIT_RENDER_DIST = 12;
     constexpr inline int INIT_LOAD_DIST = INIT_RENDER_DIST + 2;
-
-    constexpr inline int MAX_RENDER_DIST = 13;
-    constexpr inline float NEAR_Z = 0.01f;
-    constexpr inline float FAR_Z = (float)((vox::consts::MAX_RENDER_DIST + 2) * vox::consts::CHUNK_X);
+    constexpr static int MAX_RENDER_DIST = 13;
 
     constexpr inline float TEX_BLOCK_WID_PIX = 256.0f;
     constexpr inline float TEX_BLOCK_HEI_PIX = 256.0f;
