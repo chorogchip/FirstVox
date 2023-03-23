@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sstream>
+#include "Vector.h"
 
 namespace vox::logger
 {
@@ -26,6 +27,21 @@ namespace vox::logger
             this->LogDebugString();
             return *this;
         }
+        template<>
+        Logger& operator<<( const vox::data::Vector4f& t )
+        {
+            const float* f = (const float*)&t;
+            ostr << '[' << f[0] << ' ' << f[1] << ' ' << f[2] << ' ' << f[3] << ']' << ' ';
+            return *this;
+        }
+        template<>
+        Logger& operator<<( const vox::data::Vector4i& t )
+        {
+            const int* f = (const int*)&t;
+            ostr << '[' << f[0] << ' ' << f[1] << ' ' << f[2] << ' ' << f[3] << ']' << ' ';
+            return *this;
+        }
+
         std::string GetString()
         {
             return ostr.str();

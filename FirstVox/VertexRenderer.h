@@ -71,4 +71,6 @@ namespace vox::ren::vertex
     void ReleaseVertexBuffer( void* p_vertex_buffer );
     void MapVertex( void* p_vertex_buffer, const VertexChunk* vertex_chunk, size_t vertex_chunk_count );
     void RenderChunk( float x, float y, float z, const void* pp_vertex_buffer, size_t vertex_size );
+
+    const float* GetLastCalculatedCameraViewMatrix();
 }

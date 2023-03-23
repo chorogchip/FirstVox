@@ -3,9 +3,12 @@
 #include <immintrin.h>
 #include <ostream>
 
+#include "Marker.h"
 #include "Macros.h"
 
 namespace vox::data {
+
+    USING_SIMD_PTR_TO_PRIMITIVE_PTR_TRICK;
 
     using Vector4f = __m128;
     using Vector4i = __m128i;
@@ -304,6 +307,12 @@ namespace vox::data {
         FORCE_INLINE Vector4f VEC_CALL Dot3( Vector4f a, Vector4f b )
         {
             return _mm_dp_ps( a, b, 0b01110001 );
+        }
+        FORCE_INLINE float VEC_CALL Dot3ToScalar( const Vector4f* a, const Vector4f* b )
+        {
+            const float* ap = (const float*)a;
+            const float* bp = (const float*)b;
+            return ap[0] * bp[0] + ap[1] * bp[1] + ap[2] * bp[2];
         }
         FORCE_INLINE Vector4f VEC_CALL Dot4( Vector4f a, Vector4f b )
         {

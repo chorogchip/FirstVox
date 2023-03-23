@@ -176,6 +176,7 @@
     <ClInclude Include="ChunkVertexBuffer.h" />
     <ClInclude Include="FirstVoxHeader.h" />
     <ClInclude Include="Marker.h" />
+    <ClInclude Include="RendererViewer.h" />
     <ClInclude Include="ResizingArray.h" />
     <ClInclude Include="Consts.h" />
     <ClInclude Include="ConstsTime.h" />
@@ -211,6 +212,7 @@
     <ClCompile Include="ChunkManager.cpp" />
     <ClCompile Include="ChunkVertexBuffer.cpp" />
     <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="RendererViewer.cpp" />
     <ClCompile Include="ResizingArray.cpp" />
     <ClCompile Include="EBlockID.cpp" />
     <ClCompile Include="EventHandler.cpp" />

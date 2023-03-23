@@ -19,10 +19,9 @@ namespace vox::gameutils
         vox::data::vector::Storeu( pos,
             vox::data::vector::ConvertToVector4i( round_pos ) );
         
-        const auto len_v = ray_direction;
         alignas(16) float tdelta[4];
-        const auto mask_v = vox::data::vector::Set1sIfEqual( len_v, vox::data::vector::SetZero4f() );
-        const auto lenres_v = vox::data::vector::Add( len_v,
+        const auto mask_v = vox::data::vector::Set1sIfEqual( ray_direction, vox::data::vector::SetZero4f() );
+        const auto lenres_v = vox::data::vector::Add( ray_direction,
             vox::data::vector::And( mask_v, vox::data::vector::SetBroadcast(
                 std::numeric_limits<float>::min()
             ) ) );
@@ -30,7 +29,7 @@ namespace vox::gameutils
             vox::data::vector::ReciprocalApproximate( lenres_v ) );
         vox::data::vector::Store( tdelta, tdelta_v );
 
-        const int sign_bit = vox::data::vector::GetSignBits( len_v );
+        const int sign_bit = vox::data::vector::GetSignBits( ray_direction );
         alignas(16) const int step[4] = {
             1 - ((sign_bit & 1) << 1),
             1 - ((sign_bit & 2)),

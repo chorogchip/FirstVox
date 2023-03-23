@@ -11,6 +11,7 @@ namespace vox::core::camera
     {
     private:
         float fov_y_;
+        float asepct_ratio_;
     public:
         vox::data::Entity entity;
 
@@ -27,6 +28,15 @@ namespace vox::core::camera
         float GetFovY() const
         {
             return fov_y_;
+        }
+        float GetAspectRatio() const
+        {
+            return asepct_ratio_;
+        }
+
+        void SetAspectRatio( float aspect_ratio )
+        {
+            asepct_ratio_ = aspect_ratio;
         }
         // order : right, left, up, down, far, near
         void GenerateViewFrustum( vox::data::shapes::Plane plane_dest[6] ) const;

@@ -76,6 +76,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     FilterError( vox::ren::base::Init( h_wnd_ ) );
     FilterError( vox::ren::vertex::Init( h_wnd_ ) );
+    vox::core::gamecore::camera.SetAspectRatio( (float)vox::ren::base::GetScreenWidth() / (float)vox::ren::base::GetScreenHeight() );
     vox::core::gamecore::Init();
     vox::core::chunkmanager::Init();
 
@@ -83,6 +84,12 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     MSG msg{};
     vox::utils::Timer timer{};
     timer.Start();
+
+
+    vox::data::shapes::Plane planes[6];
+    vox::core::gamecore::camera.GenerateViewFrustum( planes );
+    vox::logger::GLogger << planes[0] << planes[1] << planes[2] << planes[3] << planes[4] << planes[5] << vox::logger::end;
+
 
     while ( WM_QUIT != msg.message )
     {
@@ -180,6 +187,8 @@ static void WinInit()
 
 static void ResizeRenderer( long new_width, long new_height )
 {
+    vox::core::gamecore::camera.SetAspectRatio( (float)new_width / (float)new_height );
+
     HRESULT hr{ S_OK };
     hr = vox::ren::base::ResizeScreen( h_wnd_, new_width, new_height );
     if ( hr == DXGI_ERROR_DEVICE_REMOVED || hr == DXGI_ERROR_DEVICE_RESET )

@@ -4,6 +4,7 @@
 #include <Windows.h>
 
 #include "FirstVoxHeader.h"
+#include "Marker.h"
 #include "Macros.h"
 #include "Consts.h"
 #include "ConstsTime.h"
@@ -49,6 +50,12 @@ namespace vox::ren::vertex
     DirectX::XMMATRIX mat_chunk_world_;
     DirectX::XMMATRIX mat_chunk_view_;
     DirectX::XMMATRIX mat_chunk_projection_;
+
+    const float* GetLastCalculatedCameraViewMatrix()
+    {
+        USING_DXMATRIX_PTR_TO_PRIMITIVE_PTR_TRICK;
+        return (const float*)&mat_chunk_projection_.r;
+    }
 
 #define CATCH_RES(x) do { if ( FAILED( hr = (x) ) ) { return hr; } } while (false)
 #define RLS_IF(x) do { if ( x ) x->Release(); x = nullptr; } while (false)
@@ -97,7 +104,7 @@ namespace vox::ren::vertex
         CATCH_RES( vox::ren::base::CreateTextureFromImage(
             L"Textures/block_textures.tga", &chunk_texture_rv_
         ) );
-
+        
         mat_chunk_projection_ = DirectX::XMMatrixPerspectiveFovLH( vox::core::gamecore::camera.GetFovY(),
             (float)vox::ren::base::GetScreenWidth() / (float)vox::ren::base::GetScreenHeight(),
             vox::core::gamecore::camera.GetNearZ(), vox::core::gamecore::camera.GetFarZ()
