@@ -85,12 +85,6 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     vox::utils::Timer timer{};
     timer.Start();
 
-
-    vox::data::shapes::Plane planes[6];
-    vox::core::gamecore::camera.GenerateViewFrustum( planes );
-    vox::logger::GLogger << planes[0] << planes[1] << planes[2] << planes[3] << planes[4] << planes[5] << vox::logger::end;
-
-
     while ( WM_QUIT != msg.message )
     {
         if ( PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) )

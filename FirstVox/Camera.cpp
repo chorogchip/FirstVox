@@ -13,7 +13,6 @@ namespace vox::core::camera
     }
 
 
-
     // order : right, left, up, down, far, near
     void Camera::GenerateViewFrustum( vox::data::shapes::Plane plane_dest[6] ) const
     {

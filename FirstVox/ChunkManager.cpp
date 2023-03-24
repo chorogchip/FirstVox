@@ -10,6 +10,7 @@
 #include "Logger.h"
 #include "GameUtils.h"
 #include "QueueFor1WorkerThread.h"
+#include "Shapes.h"
 #include "Chunk.h"
 #include "GameCore.h"
 #include "VertexRenderer.h"
@@ -36,6 +37,8 @@ namespace vox::core::chunkmanager
         LOADING,
         LOAD_FINISHED,
         MESH_NEEDED,
+        MESH_GENERATING,
+        MESH_UNMAPPED,
         MESH_GENED,
     };
     struct ChunkNode
@@ -59,6 +62,7 @@ namespace vox::core::chunkmanager
     static volatile bool exit_chunk_load_thread = false;
     vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_load_job_queue_;
     vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_clear_job_queue_;
+    vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_vertex_job_queue_;
 
     struct ChunkNodeRenderInfo
     {
@@ -216,7 +220,9 @@ namespace vox::core::chunkmanager
     {
         while ( true )
         {
-            if ( chunk_load_job_queue_.IsEmpty() && chunk_clear_job_queue_.IsEmpty() )
+            if ( chunk_load_job_queue_.IsEmpty() &&
+                chunk_clear_job_queue_.IsEmpty() &&
+                chunk_vertex_job_queue_.IsEmpty() )
             {
                 if ( exit_chunk_load_thread ) return;
 
@@ -239,6 +245,37 @@ namespace vox::core::chunkmanager
                     ChunkNode *const p_chunk_node = chunk_clear_job_queue_.Pop();
                     p_chunk_node->chunk.Clear();
                     delete p_chunk_node;
+                }
+
+                const int sz_mesh = (int)chunk_vertex_job_queue_.Size();
+                for ( int i = 0; i < sz_mesh; ++i )
+                {
+                    auto ch = chunk_vertex_job_queue_.Pop();
+                    
+                    if ( ch->state != EnumChunkStates::MESH_GENERATING )
+                        goto PASS_THIS_CHUNK;
+
+                    vox::data::Chunk *adchs[4];
+                    for ( int i = 0; i < 4; ++i )
+                    {
+                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( ch->chunk.GetCV(), vox::data::DIRECTION4_V4I[i]);
+                        ChunkNode *adch = GetChunkNodeByChunkNum( adjacent_cv );
+                        if ( adch == nullptr || adch->state == EnumChunkStates::LOADING )
+                        {
+                            ch->state = EnumChunkStates::MESH_NEEDED;
+                            goto PASS_THIS_CHUNK;
+                        }
+                        adchs[i] = &adch->chunk;
+                    }
+                    ch->chunk.GenerateVertex( adchs[0], adchs[1], adchs[2], adchs[3] );
+
+                    if ( ch->state != EnumChunkStates::MESH_GENERATING )
+                        goto PASS_THIS_CHUNK;
+
+                    // TODO bug : if SetBlock is called on other thread at here, then mesh is not regenerated.
+
+                    ch->state = EnumChunkStates::MESH_UNMAPPED;
+PASS_THIS_CHUNK:;
                 }
             }
         }
@@ -386,6 +423,11 @@ namespace vox::core::chunkmanager
         static_assert(vox::consts::CHUNK_X_LOG2 == vox::consts::CHUNK_Z_LOG2);
         const int64_t render_dist_sq = ((int64_t)chunk_render_dist_ * chunk_render_dist_) <<
             (int64_t)(vox::consts::CHUNK_X_LOG2 * 2);
+
+
+        vox::data::shapes::Plane frustum_planes[6];
+        vox::core::gamecore::camera.GenerateViewFrustum( frustum_planes );
+
         for ( int dcz = -chunk_render_dist_; dcz <= chunk_render_dist_; ++dcz )
             for ( int dcx = -chunk_render_dist_; dcx <= chunk_render_dist_; ++dcx )
             {
@@ -393,68 +435,117 @@ namespace vox::core::chunkmanager
                 const int64_t dpz = (int64_t)((dcz << vox::consts::CHUNK_Z_LOG2) + cdcz);
                 const int64_t dist_sq = dpz * dpz + dpx * dpx;
 
-                if ( dist_sq <= render_dist_sq )
+                vox::data::Vector4i cv;
+                ChunkNode* ch;
+
+                // check chunk is in render dist
+                if ( dist_sq > render_dist_sq )
+                    goto DONT_RENDER_THIS_CHUNK;
+
+                // check presence of chunk on memory
+                cv = vox::data::vector::Add( cam_chunk_num, vox::data::vector::Set( dcx, 0, dcz, 0 ) );
+                ch = GetChunkNodeByChunkNum( cv );
+                if ( ch == nullptr )
+                    goto DONT_RENDER_THIS_CHUNK;
+
+                switch ( ch->state )
                 {
-                    const auto cv = vox::data::vector::Add( cam_chunk_num, vox::data::vector::Set( dcx, 0, dcz, 0 ) );
-                    ChunkNode *ch = GetChunkNodeByChunkNum( cv );
-                    if ( ch != nullptr )
-                    {
-                        switch ( ch->state )
-                        {
-                        case EnumChunkStates::LOADING:
-                        default:
-                            goto DONT_RENDER_THIS_CHUNK;
+                case EnumChunkStates::LOADING:
+                default:
+                    goto DONT_RENDER_THIS_CHUNK;
 
-                        case EnumChunkStates::LOAD_FINISHED:
-                        case EnumChunkStates::MESH_NEEDED:
-                            goto GENERATE_VERTEX;
+                case EnumChunkStates::LOAD_FINISHED:
+                    if ( chunk_vertex_job_queue_.IsFull() )
+                        goto GENERATE_VERTEX;
+                    ch->state = EnumChunkStates::MESH_GENERATING;
+                    chunk_vertex_job_queue_.Push( ch );
+                    goto DONT_RENDER_THIS_CHUNK;
 
-                        case EnumChunkStates::MESH_GENED:
-                            goto RENDER_THIS_CHUNK;
-                        }
+                case EnumChunkStates::MESH_GENERATING:
+                    goto DONT_RENDER_THIS_CHUNK;
+
+                case EnumChunkStates::MESH_UNMAPPED:
+                    ch->chunk.MapTempVertexToBuffer();
+                    ch->state = EnumChunkStates::MESH_GENED;
+                    goto RENDER_THIS_CHUNK;
+
+                case EnumChunkStates::MESH_NEEDED:
+                    goto GENERATE_VERTEX;
+
+                case EnumChunkStates::MESH_GENED:
+                    goto RENDER_THIS_CHUNK;
+                }
 GENERATE_VERTEX:
+                {
+                    vox::data::Chunk *adchs[4];
+                    for ( int i = 0; i < 4; ++i )
+                    {
+                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
+                        ChunkNode *adch = GetChunkNodeByChunkNum( adjacent_cv );
+                        if ( adch == nullptr || adch->state == EnumChunkStates::LOADING )
                         {
-                            vox::data::Chunk *adchs[4];
-                            for ( int i = 0; i < 4; ++i )
-                            {
-                                const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
-                                ChunkNode *adch = GetChunkNodeByChunkNum( adjacent_cv );
-                                if ( adch == nullptr || adch->state == EnumChunkStates::LOADING )
-                                {
-                                    goto DONT_RENDER_THIS_CHUNK;
-                                }
-                                adchs[i] = &adch->chunk;
-                            }
-                            ch->chunk.GenerateVertex( adchs[0], adchs[1], adchs[2], adchs[3] );
-                            ch->state = EnumChunkStates::MESH_GENED;
+                            goto DONT_RENDER_THIS_CHUNK;
                         }
-RENDER_THIS_CHUNK:
-                        {
-                            int sides = (int)vox::data::EnumBitSide6::FULL_VALUE;
-                            if ( dcz > 0 )
-                            {
-                                sides -= (int)vox::data::EnumBitSide6::FRONT;
-                            }
-                            else if ( dcz < 0 )
-                            {
-                                sides -= (int)vox::data::EnumBitSide6::BACK;
-                            }
-                            if ( dcx > 0 )
-                            {
-                                sides -= (int)vox::data::EnumBitSide6::RIGHT;
-                            }
-                            else if ( dcx < 0 )
-                            {
-                                sides -= (int)vox::data::EnumBitSide6::LEFT;
-                            }
+                        adchs[i] = &adch->chunk;
+                    }
+                    ch->chunk.GenerateVertex( adchs[0], adchs[1], adchs[2], adchs[3] );
+                    ch->chunk.MapTempVertexToBuffer();
+                    ch->state = EnumChunkStates::MESH_GENED;
+                }
 
-                            game_chunks_render_list_.emplace_back( ch, (vox::data::EnumBitSide6)sides );
-                        }
+RENDER_THIS_CHUNK:
+                // view frustum culling
+                {
+                    // im busy abstraction will be done later
+
+                    const float x_min = (float)(vox::data::vector::GetX( cv ) << vox::consts::CHUNK_X_LOG2);
+                    const float x_max = x_min + (float)vox::consts::CHUNK_X;
+                    const float y_min = 0.0f;
+                    const float y_max = (float)vox::consts::CHUNK_Y;
+                    const float z_min = (float)(vox::data::vector::GetZ( cv ) << vox::consts::CHUNK_Z_LOG2);
+                    const float z_max = z_min + (float)vox::consts::CHUNK_Z;
+
+                    for ( auto& plane : frustum_planes )
+                    {
+                        const float* plane_f = (const float*)&plane;
+
+                        float far_xyz[3];
+
+                        far_xyz[0] = plane_f[0] >= 0.0f ? x_max : x_min;
+                        far_xyz[1] = plane_f[1] >= 0.0f ? y_max : y_min;
+                        far_xyz[2] = plane_f[2] >= 0.0f ? z_max : z_min;
+
+                        const float far_res = vox::utils::dot3( far_xyz, plane_f );
+                        if ( far_res + plane_f[3] < 0.0f )
+                            goto DONT_RENDER_THIS_CHUNK;
+                    }
+
+                }
+
+                {
+                    int sides = (int)vox::data::EnumBitSide6::FULL_VALUE;
+                    if ( dcz > 0 )
+                    {
+                        sides -= (int)vox::data::EnumBitSide6::FRONT;
+                    }
+                    else if ( dcz < 0 )
+                    {
+                        sides -= (int)vox::data::EnumBitSide6::BACK;
+                    }
+                    if ( dcx > 0 )
+                    {
+                        sides -= (int)vox::data::EnumBitSide6::RIGHT;
+                    }
+                    else if ( dcx < 0 )
+                    {
+                        sides -= (int)vox::data::EnumBitSide6::LEFT;
+                    }
+
+                    game_chunks_render_list_.emplace_back( ch, (vox::data::EnumBitSide6)sides );
+                }
 DONT_RENDER_THIS_CHUNK:;
-                    }  // if chunk is not nullptr
-                }  // if dist is in render dist
             }  // 2 for loop
-    }  // if to_make_render_list_again
+    }
 
     void Render()
     {
@@ -473,7 +564,7 @@ DONT_RENDER_THIS_CHUNK:;
             alignas(16) int bp[4];
             vox::data::vector::Store( (vox::data::Vector4i*)bp, GetBlockRemPosByPos( block_pos ) );
 
-            if ( ch->state == EnumChunkStates::MESH_GENED )
+            if ( (int)ch->state > (int)EnumChunkStates::MESH_NEEDED )
             {
                 ch->state = EnumChunkStates::MESH_NEEDED;
             }

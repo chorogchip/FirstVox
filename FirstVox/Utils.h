@@ -27,7 +27,7 @@ namespace vox::utils
 
     FORCE_INLINE float dot3( const float* a, const float* b )
     {
-        return a[0] * b[0] + a[1] * b[2] + a[2] * b[2];
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     }
     
     FORCE_INLINE void cross3( float* dest, const float* a, const float* b )

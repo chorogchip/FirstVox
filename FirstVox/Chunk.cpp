@@ -337,8 +337,6 @@ namespace vox::data
                 }  // for x
             }  // for z
         }  // for y
-
-        this->MapTempVertexToBuffer();
     }
 
     void Chunk::MapTempVertexToBuffer()
