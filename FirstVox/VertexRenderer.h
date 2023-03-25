@@ -6,15 +6,67 @@ namespace vox::ren::vertex
 {
     struct VertexChunk
     {
-        DirectX::XMFLOAT3 Pos;
-        DirectX::XMFLOAT2 Tex;
-        DirectX::XMFLOAT3 Nor;
+        unsigned int PosNorm;
+        unsigned int UV;
     };
     inline constexpr unsigned int VERTEX_CHUNK_STRIDE = sizeof( VertexChunk );
     inline constexpr unsigned int VERTEX_CHUNK_OFFSET = 0;
 
     inline constexpr float TEX_BL_SZ = 256.0f / 16.0f;
 
+#define GEN_VC(x, y, z, n, u, v) { x << 24U | y << 14U | z << 6U | n, v << 16U | u }
+
+    inline constexpr VertexChunk VERTICES_BLOCK[] =
+    {
+        // up
+        GEN_VC( 0, 1, 1, 0, 0, 1 ),
+        GEN_VC( 1, 1, 0, 0, 1, 0 ),
+        GEN_VC( 0, 1, 0, 0, 0, 0 ),
+        GEN_VC( 1, 1, 1, 0, 1, 1 ),
+        GEN_VC( 1, 1, 0, 0, 1, 0 ),
+        GEN_VC( 0, 1, 1, 0, 0, 1 ),
+
+        // down
+        GEN_VC( 1, 0, 1, 1, 1, 1 ),
+        GEN_VC( 0, 0, 0, 1, 0, 0 ),
+        GEN_VC( 1, 0, 0, 1, 1, 0 ),
+        GEN_VC( 0, 0, 1, 1, 0, 1 ),
+        GEN_VC( 0, 0, 0, 1, 0, 0 ),
+        GEN_VC( 1, 0, 1, 1, 1, 1 ),
+
+        // front
+        GEN_VC( 1, 1, 1, 2, 1, 1 ),
+        GEN_VC( 0, 0, 1, 2, 0, 0 ),
+        GEN_VC( 1, 0, 1, 2, 1, 0 ),
+        GEN_VC( 0, 1, 1, 2, 0, 1 ),
+        GEN_VC( 0, 0, 1, 2, 0, 0 ),
+        GEN_VC( 1, 1, 1, 2, 1, 1 ),
+
+        // back
+        GEN_VC( 0, 1, 0, 3, 0, 1 ),
+        GEN_VC( 1, 0, 0, 3, 1, 0 ),
+        GEN_VC( 0, 0, 0, 3, 0, 0 ),
+        GEN_VC( 1, 1, 0, 3, 1, 1 ),
+        GEN_VC( 1, 0, 0, 3, 1, 0 ),
+        GEN_VC( 0, 1, 0, 3, 0, 1 ),
+
+        // right
+        GEN_VC( 1, 1, 0, 4, 1, 1 ),
+        GEN_VC( 1, 0, 1, 4, 0, 0 ),
+        GEN_VC( 1, 0, 0, 4, 1, 0 ),
+        GEN_VC( 1, 1, 1, 4, 0, 1 ),
+        GEN_VC( 1, 0, 1, 4, 0, 0 ),
+        GEN_VC( 1, 1, 0, 4, 1, 1 ),
+
+        // left
+        GEN_VC( 0, 1, 1, 5, 0, 1 ),
+        GEN_VC( 0, 0, 0, 5, 1, 0 ),
+        GEN_VC( 0, 0, 1, 5, 0, 0 ),
+        GEN_VC( 0, 1, 0, 5, 1, 1 ),
+        GEN_VC( 0, 0, 0, 5, 1, 0 ),
+        GEN_VC( 0, 1, 1, 5, 0, 1 ),
+    };
+    /*
     inline constexpr VertexChunk VERTICES_BLOCK[] =
     {
         // up
@@ -64,7 +116,7 @@ namespace vox::ren::vertex
         { DirectX::XMFLOAT3( -0.5f,  0.5f, -0.5f ), DirectX::XMFLOAT2( 1.0f / TEX_BL_SZ, 1.0f / TEX_BL_SZ ), DirectX::XMFLOAT3( -1.0f,  0.0f,  0.0f ) },
         { DirectX::XMFLOAT3( -0.5f, -0.5f, -0.5f ), DirectX::XMFLOAT2( 1.0f / TEX_BL_SZ, 0.0f / TEX_BL_SZ ), DirectX::XMFLOAT3( -1.0f,  0.0f,  0.0f ) },
         { DirectX::XMFLOAT3( -0.5f,  0.5f,  0.5f ), DirectX::XMFLOAT2( 0.0f / TEX_BL_SZ, 1.0f / TEX_BL_SZ ), DirectX::XMFLOAT3( -1.0f,  0.0f,  0.0f ) },
-    };
+    };*/
     inline constexpr int VERTICES_BLOCK_COUNT = sizeof( VERTICES_BLOCK ) / sizeof( VertexChunk );
 
     void CreateVertexBuffer( void* pp_vertex_buffer, size_t size );

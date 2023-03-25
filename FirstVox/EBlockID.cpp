@@ -15,15 +15,13 @@ namespace vox::data
         }
     }
 
-    static constexpr vox::data::Pointf2D Texture_Pos_[] = {
+    static constexpr unsigned Texture_Pos_[] = {
 #define BL_ATR(name, is_full_block, px, py, ...)\
-vox::data::Pointf2D{\
-(float)px * (vox::consts::BLOCK_WID_PIX / vox::consts::TEX_BLOCK_WID_PIX),\
-(float)py * (vox::consts::BLOCK_HEI_PIX / vox::consts::TEX_BLOCK_HEI_PIX)},
+py << 16U | px,
     BLOCK_ATTRIB_TUPLE
 #undef BL_ATR
     };
-    const vox::data::Pointf2D& GetTexturePos( EBlockID block_id )
+    const unsigned GetTexturePos( EBlockID block_id )
     {
         return Texture_Pos_[(int)block_id];
     }

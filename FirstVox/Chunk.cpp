@@ -194,9 +194,8 @@ namespace vox::data
                 {
                     if ( auto id = this->GetBlockId( ix, iy, iz ); id != EBlockID::AIR )
                     {
-                        auto& tp = vox::data::GetTexturePos( id );
-                        const float tpx = tp.x;
-                        const float tpz = tp.z;
+                        unsigned tp = vox::data::GetTexturePos( id );
+                        unsigned dpos = ix << 24U | iy << 14U | iz << 6U;
 
                         if ( vox::data::IsFullBlock( id ) )
                         {
@@ -205,11 +204,8 @@ namespace vox::data
                                 for ( int i = 0; i < 6; ++i )
                                 {
                                     vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                    vc.Pos.x += (float)ix;
-                                    vc.Pos.y += (float)iy;
-                                    vc.Pos.z += (float)iz;
-                                    vc.Tex.x += tpx;
-                                    vc.Tex.y += tpz;
+                                    vc.PosNorm += dpos;
+                                    vc.UV += tp;
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::UP].push_back( &vc );
                                 }
                             }
@@ -218,11 +214,8 @@ namespace vox::data
                                 for ( int i = 6; i < 12; ++i )
                                 {
                                     vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                    vc.Pos.x += (float)ix;
-                                    vc.Pos.y += (float)iy;
-                                    vc.Pos.z += (float)iz;
-                                    vc.Tex.x += tpx;
-                                    vc.Tex.y += tpz;
+                                    vc.PosNorm += dpos;
+                                    vc.UV += tp;
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::DOWN].push_back( &vc );
                                 }
                             }
@@ -232,11 +225,8 @@ namespace vox::data
                                     for ( int i = 12; i < 18; ++i )
                                     {
                                         vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                        vc.Pos.x += (float)ix;
-                                        vc.Pos.y += (float)iy;
-                                        vc.Pos.z += (float)iz;
-                                        vc.Tex.x += tpx;
-                                        vc.Tex.y += tpz;
+                                        vc.PosNorm += dpos;
+                                        vc.UV += tp;
                                         vertex_buffer_temp_[(int)vox::data::EnumSide::FRONT].push_back( &vc );
                                     }
                             }
@@ -245,11 +235,8 @@ namespace vox::data
                                 for ( int i = 12; i < 18; ++i )
                                 {
                                     vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                    vc.Pos.x += (float)ix;
-                                    vc.Pos.y += (float)iy;
-                                    vc.Pos.z += (float)iz;
-                                    vc.Tex.x += tpx;
-                                    vc.Tex.y += tpz;
+                                    vc.PosNorm += dpos;
+                                    vc.UV += tp;
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::FRONT].push_back( &vc );
                                 }
                             }
@@ -259,11 +246,8 @@ namespace vox::data
                                     for ( int i = 18; i < 24; ++i )
                                     {
                                         vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                        vc.Pos.x += (float)ix;
-                                        vc.Pos.y += (float)iy;
-                                        vc.Pos.z += (float)iz;
-                                        vc.Tex.x += tpx;
-                                        vc.Tex.y += tpz;
+                                        vc.PosNorm += dpos;
+                                        vc.UV += tp;
                                         vertex_buffer_temp_[(int)vox::data::EnumSide::BACK].push_back( &vc );
                                     }
                             }
@@ -272,11 +256,8 @@ namespace vox::data
                                 for ( int i = 18; i < 24; ++i )
                                 {
                                     vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                    vc.Pos.x += (float)ix;
-                                    vc.Pos.y += (float)iy;
-                                    vc.Pos.z += (float)iz;
-                                    vc.Tex.x += tpx;
-                                    vc.Tex.y += tpz;
+                                    vc.PosNorm += dpos;
+                                    vc.UV += tp;
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::BACK].push_back( &vc );
                                 }
                             }
@@ -286,11 +267,8 @@ namespace vox::data
                                     for ( int i = 24; i < 30; ++i )
                                     {
                                         vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                        vc.Pos.x += (float)ix;
-                                        vc.Pos.y += (float)iy;
-                                        vc.Pos.z += (float)iz;
-                                        vc.Tex.x += tpx;
-                                        vc.Tex.y += tpz;
+                                        vc.PosNorm += dpos;
+                                        vc.UV += tp;
                                         vertex_buffer_temp_[(int)vox::data::EnumSide::RIGHT].push_back( &vc );
                                     }
                             }
@@ -299,11 +277,8 @@ namespace vox::data
                                 for ( int i = 24; i < 30; ++i )
                                 {
                                     vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                    vc.Pos.x += (float)ix;
-                                    vc.Pos.y += (float)iy;
-                                    vc.Pos.z += (float)iz;
-                                    vc.Tex.x += tpx;
-                                    vc.Tex.y += tpz;
+                                    vc.PosNorm += dpos;
+                                    vc.UV += tp;
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::RIGHT].push_back( &vc );
                                 }
                             }
@@ -313,11 +288,8 @@ namespace vox::data
                                     for ( int i = 30; i < 36; ++i )
                                     {
                                         vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                        vc.Pos.x += (float)ix;
-                                        vc.Pos.y += (float)iy;
-                                        vc.Pos.z += (float)iz;
-                                        vc.Tex.x += tpx;
-                                        vc.Tex.y += tpz;
+                                        vc.PosNorm += dpos;
+                                        vc.UV += tp;
                                         vertex_buffer_temp_[(int)vox::data::EnumSide::LEFT].push_back( &vc );
                                     }
                             }
@@ -326,11 +298,8 @@ namespace vox::data
                                 for ( int i = 30; i < 36; ++i )
                                 {
                                     vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i] };
-                                    vc.Pos.x += (float)ix;
-                                    vc.Pos.y += (float)iy;
-                                    vc.Pos.z += (float)iz;
-                                    vc.Tex.x += tpx;
-                                    vc.Tex.y += tpz;
+                                    vc.PosNorm += dpos;
+                                    vc.UV += tp;
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::LEFT].push_back( &vc );
                                 }
                             }
@@ -342,11 +311,8 @@ namespace vox::data
                                 for ( int j = 0; j < 6; ++j )
                                 {
                                     vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i * 6 + j] };
-                                    vc.Pos.x += (float)ix;
-                                    vc.Pos.y += (float)iy;
-                                    vc.Pos.z += (float)iz;
-                                    vc.Tex.x += tpx;
-                                    vc.Tex.y += tpz;
+                                    vc.PosNorm += dpos;
+                                    vc.UV += tp;
                                     vertex_buffer_temp_[i].push_back( &vc );
                                 }
                         }

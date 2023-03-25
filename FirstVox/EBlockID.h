@@ -26,7 +26,7 @@ BL_ATR(MAX_COUNT,  false, 0, 0)
     };
 
     bool IsFullBlock( EBlockID block_id );
-    const vox::data::Pointf2D& GetTexturePos( EBlockID block_id );
+    const unsigned GetTexturePos( EBlockID block_id );
 
     // pervious EnumBlocks
     /*

@@ -68,10 +68,16 @@ namespace vox::ren::vertex
 
         static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC1[] =
         {
+            { "POSITION_NORMAL", 0, DXGI_FORMAT_R32_UINT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "UV",    0, DXGI_FORMAT_R32_UINT, 0, 4, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+        };
+        /*
+        static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC1[] =
+        {
             { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "TEX",    0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0 },
             { "NORMAL",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 20, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-        };
+        };*/
         constexpr UINT NUM_ELEMENTS_DESC1 = ARRAYSIZE( VERTEX_DESC1 );
 
         CATCH_RES( vox::ren::base::CreateShaderAndInputLayout(
@@ -116,13 +122,13 @@ namespace vox::ren::vertex
         VertexChunk block1_vertices[VERTICES_BLOCK_COUNT];
         memcpy( block1_vertices, VERTICES_BLOCK, sizeof( block1_vertices ) );
         for ( int i = 0; i < VERTICES_BLOCK_COUNT; ++i )
-        {
+        {/* TODO
             constexpr float SUN_SIZE_MULTIPLIER = 0.05f;
             block1_vertices[i].Pos.x *= vox::consts::SUN_ALTITUDE * SUN_SIZE_MULTIPLIER;
             block1_vertices[i].Pos.y *= vox::consts::SUN_ALTITUDE * SUN_SIZE_MULTIPLIER;
             block1_vertices[i].Pos.z *= vox::consts::SUN_ALTITUDE * SUN_SIZE_MULTIPLIER;
             block1_vertices[i].Tex.x = 0.0f * (vox::consts::BLOCK_WID_PIX / vox::consts::TEX_BLOCK_WID_PIX);
-            block1_vertices[i].Tex.y = 2.0f * (vox::consts::BLOCK_HEI_PIX / vox::consts::TEX_BLOCK_HEI_PIX);
+            block1_vertices[i].Tex.y = 2.0f * (vox::consts::BLOCK_HEI_PIX / vox::consts::TEX_BLOCK_HEI_PIX);*/
         }
         immediate_context_->UpdateSubresource(block1_buffer_, 0, NULL, block1_vertices, 0, 0);
         return hr;
@@ -192,6 +198,7 @@ namespace vox::ren::vertex
         immediate_context_->PSSetSamplers( 0, 1, &chunk_sampler_point_ );
         immediate_context_->PSSetConstantBuffers( 2, 1, &chunk_CB_changes_every_frame_ );
 
+        /*
         // draw sun
         alignas(16) float sun_pos_arr[4];
         const auto sun_pos = vox::data::vector::Add( cam_pos_delta,
@@ -202,7 +209,7 @@ namespace vox::ren::vertex
         cb_changes_by_chunk.mat_world = DirectX::XMMatrixTranspose( mat_chunk_world_ );
         immediate_context_->UpdateSubresource( chunk_CB_changes_by_chunk_, 0, NULL, &cb_changes_by_chunk, 0, 0 );
         immediate_context_->VSSetConstantBuffers( 3, 1, &chunk_CB_changes_by_chunk_ );
-        immediate_context_->Draw( VERTICES_BLOCK_COUNT, 0 );
+        immediate_context_->Draw( VERTICES_BLOCK_COUNT, 0 );*/
     }
 
     void RenderChunk( float x, float y, float z, const void* pp_vertex_buffer, size_t vertex_size )
