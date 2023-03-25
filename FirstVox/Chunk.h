@@ -24,6 +24,7 @@ namespace vox::data
         static_assert(sizeof( vox::data::Block ) == 4);
     public:
         Chunk( vox::data::Vector4i cv );
+        void ConstructForReuse( vox::data::Vector4i cv );
 
         FORCE_INLINE EBlockID GetBlockId( int x, int y, int z ) const
         {
@@ -58,7 +59,7 @@ namespace vox::data
         void GenerateVertex( Chunk* front, Chunk* back, Chunk* right, Chunk* left );
         void MapTempVertexToBuffer();
         void Render( vox::data::EnumBitSide6 sides );
-        void Clear();
+        void Clear( bool to_retrieve_buffer );
         void Touch();
     };
 }

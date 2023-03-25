@@ -22,7 +22,7 @@ namespace vox::data
     template<typename Elem, unsigned size>
     void QueueFor1WorkerThread<Elem, size>::Push(Elem elem)
     {
-        const int bk = this->back;
+        const unsigned bk = this->back;
         this->data[bk] = elem;
         this->back = (bk + 1) % size;
     }
@@ -30,7 +30,7 @@ namespace vox::data
     template<typename Elem, unsigned size>
     Elem QueueFor1WorkerThread<Elem, size>::Pop()
     {
-        const int fr = this->front;
+        const unsigned fr = this->front;
         const Elem ret = this->data[fr];
         this->front = (fr + 1) % size;
         return ret;
@@ -51,8 +51,8 @@ namespace vox::data
     template<typename Elem, unsigned size>
     unsigned QueueFor1WorkerThread<Elem, size>::Size()
     {
-        const int fr = this->front;
-        const int bk = this->back;
+        const unsigned fr = this->front;
+        const unsigned bk = this->back;
         if (fr <= bk) return bk - fr;
         else return size - fr + bk;
     }

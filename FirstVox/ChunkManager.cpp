@@ -55,8 +55,17 @@ namespace vox::core::chunkmanager
             chunk{ cv }
         { }
 
+        void ConstructForReuse( vox::data::Vector4i cv )
+        {
+            next = nullptr;
+            last_updated_gametick = 0U;
+            state = EnumChunkStates::LOADING;
+            chunk.ConstructForReuse( cv );
+        }
+
     };
     static ChunkNode* game_chunks_arr_[GAME_CHUNKS_ARR_SZ];
+    vox::data::QueueFor1WorkerThread<ChunkNode*, 32> chunknode_reuse_buffer;
 
     static std::thread chunk_load_thread_;
     static volatile bool exit_chunk_load_thread = false;
@@ -131,7 +140,7 @@ namespace vox::core::chunkmanager
         return cur;
     }
 
-    static FORCE_INLINE void VEC_CALL LoadChunksByChunkLoader( vox::data::Vector4i chunk_num, int load_dist )
+    static void VEC_CALL LoadChunksByChunkLoader( vox::data::Vector4i chunk_num, int load_dist )
     {
         const auto game_tick = vox::core::gamecore::GetGameTicks();
         const int load_dist_sq = load_dist * load_dist;
@@ -147,7 +156,16 @@ namespace vox::core::chunkmanager
                     ChunkNode** ch = GetChunkNodeAddressByChunkNum( cv );
                     if ( *ch == nullptr )
                     {
-                        *ch = new ChunkNode{ cv };
+                        if ( !chunknode_reuse_buffer.IsEmpty() )
+                        {
+                            *ch = chunknode_reuse_buffer.Pop();
+                            (*ch)->ConstructForReuse( cv );
+                        }
+                        else
+                        {
+                            *ch = new ChunkNode( cv );
+                        }
+
                         if ( chunk_load_job_queue_.IsFull() )
                         {
                             (*ch)->chunk.Load();
@@ -188,7 +206,7 @@ namespace vox::core::chunkmanager
                     p_chunk = *pp_chunk;
                     if ( chunk_clear_job_queue_.IsFull() )
                     {
-                        p_chunk_to_delete->chunk.Clear();
+                        p_chunk_to_delete->chunk.Clear( false );
                         delete p_chunk_to_delete;
                     }
                     else
@@ -231,27 +249,12 @@ namespace vox::core::chunkmanager
             }
             else
             {
-                const int sz_load = (int)chunk_load_job_queue_.Size();
-                for (int i = 0; i < sz_load; ++i)
-                {
-                    ChunkNode *const p_chunk_node = chunk_load_job_queue_.Pop();
-                    p_chunk_node->chunk.Load();
-                    p_chunk_node->state = EnumChunkStates::LOAD_FINISHED;
-                }
-
-                const int sz_clear = (int)chunk_clear_job_queue_.Size();
-                for ( int i = 0; i < sz_clear; ++i )
-                {
-                    ChunkNode *const p_chunk_node = chunk_clear_job_queue_.Pop();
-                    p_chunk_node->chunk.Clear();
-                    delete p_chunk_node;
-                }
 
                 const int sz_mesh = (int)chunk_vertex_job_queue_.Size();
                 for ( int i = 0; i < sz_mesh; ++i )
                 {
                     auto ch = chunk_vertex_job_queue_.Pop();
-                    
+
                     if ( ch->state != EnumChunkStates::MESH_GENERATING )
                         goto PASS_THIS_CHUNK;
 
@@ -272,11 +275,34 @@ namespace vox::core::chunkmanager
                     if ( ch->state != EnumChunkStates::MESH_GENERATING )
                         goto PASS_THIS_CHUNK;
 
-                    // TODO bug : if SetBlock is called on other thread at here, then mesh is not regenerated.
+                    // TODO bug : if chunk state modification code at SetBlock is executed on other thread at here, then mesh is not regenerated.
+                    // and i think i have to prevent reordering and make chunk state safer by for example making it atomic
+                    // but that bug don't terminates the program and just make 1 block invisible,
+                    // and has very low possibility to occur, so i will care later
 
                     ch->state = EnumChunkStates::MESH_UNMAPPED;
 PASS_THIS_CHUNK:;
                 }
+
+                const int sz_load = (int)chunk_load_job_queue_.Size();
+                for (int i = 0; i < sz_load; ++i)
+                {
+                    ChunkNode *const p_chunk_node = chunk_load_job_queue_.Pop();
+                    p_chunk_node->chunk.Load();
+                    p_chunk_node->state = EnumChunkStates::LOAD_FINISHED;
+                }
+
+                const int sz_clear = (int)chunk_clear_job_queue_.Size();
+                for ( int i = 0; i < sz_clear; ++i )
+                {
+                    ChunkNode *const p_chunk_node = chunk_clear_job_queue_.Pop();
+                    p_chunk_node->chunk.Clear( true );
+                    if ( !chunknode_reuse_buffer.IsFull() )
+                        chunknode_reuse_buffer.Push( p_chunk_node );
+                    else
+                        delete p_chunk_node;
+                }
+
             }
         }
     }
@@ -352,7 +378,7 @@ PASS_THIS_CHUNK:;
             while ( cur != nullptr )
             {
                 ChunkNode* const tmp = cur->next;
-                cur->chunk.Clear();
+                cur->chunk.Clear( false );
                 delete cur;
                 cur = tmp;
             }
@@ -576,7 +602,7 @@ DONT_RENDER_THIS_CHUNK:;
                     const vox::data::Vector4i adjacent_cv =
                         vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
                     ChunkNode* const adch = GetChunkNodeByChunkNum( adjacent_cv );
-                    if ( adch != nullptr && adch->state == EnumChunkStates::MESH_GENED )
+                    if ( adch != nullptr && (int)adch->state > (int)EnumChunkStates::MESH_NEEDED )
                     {
                         adch->state = EnumChunkStates::MESH_NEEDED;
                     }

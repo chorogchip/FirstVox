@@ -65,7 +65,7 @@ namespace vox::core::gamecore
 
     void Init()
     {
-        //camera.entity.SetPosition( vox::data::vector::Set( 0.0f, 40.0f, -6.0f, 0.0f ) );
+        camera.entity.SetPosition( vox::data::vector::Set( 0.0f, 40.0f, 0.0f, 0.0f ) );
         //camera.entity.SetSpeed( vox::data::vector::Set( 0.0f, 0.0f, 0.0f, 0.0f ) );
     }
 

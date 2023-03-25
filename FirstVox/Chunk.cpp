@@ -19,6 +19,16 @@ namespace vox::data
         vertex_buffer_ {}, is_changed_( false )
     {}
 
+    void Chunk::ConstructForReuse( vox::data::Vector4i cv )
+    {
+        vox::data::vector::Storeu( (int*)&cv_, cv );
+        for ( int i = 0; i < (int)vox::data::EnumSide::MAX_COUNT; ++i )
+        {
+            vertex_buffer_temp_[i].clear();
+        }
+        is_changed_ = false;
+    }
+
     void Chunk::Load()
     {
         char file_name[256];
@@ -70,6 +80,9 @@ namespace vox::data
             return;
         }
 
+        memset( d_data_, 0, sizeof( d_data_ ) );
+        memset( d_id_, 0, sizeof( d_id_ ) );
+
         static constexpr float multipliers_stone[3] = { 0.5f, 0.25f, 0.125f };
         vox::rand::perlin::PerlinGeneratorUnit perlin_stone{
             this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_stone) / sizeof(float), multipliers_stone
@@ -111,19 +124,24 @@ namespace vox::data
             }
     }
 
-    void Chunk::Clear()
+    void Chunk::Clear( bool to_retrieve_buffer )
     {
+        if ( to_retrieve_buffer )
+            vertex_buffer_.RetrieveBuffer();
+
         // start saving
 
-        if ( !this->is_changed_ ) return;
+        if ( !this->is_changed_ )
+            return;
+
         char file_name[256];
         sprintf_s( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d.chnk", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
         FILE *fp;
         fopen_s( &fp, file_name, "wb" );
+
         if ( fp == nullptr )
-        {
             return;
-        }
+
         fwrite( &vox::consts::GAME_VERSION, sizeof( vox::consts::GAME_VERSION ), 1, fp );
 
         std::vector<unsigned short> out;
