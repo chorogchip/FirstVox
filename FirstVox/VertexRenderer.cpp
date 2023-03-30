@@ -51,12 +51,6 @@ namespace vox::ren::vertex
     DirectX::XMMATRIX mat_chunk_view_;
     DirectX::XMMATRIX mat_chunk_projection_;
 
-    const float* GetLastCalculatedCameraViewMatrix()
-    {
-        USING_DXMATRIX_PTR_TO_PRIMITIVE_PTR_TRICK;
-        return (const float*)&mat_chunk_projection_.r;
-    }
-
 #define CATCH_RES(x) do { if ( FAILED( hr = (x) ) ) { return hr; } } while (false)
 #define RLS_IF(x) do { if ( x ) x->Release(); x = nullptr; } while (false)
 
@@ -68,8 +62,9 @@ namespace vox::ren::vertex
 
         static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC1[] =
         {
-            { "POSITION_NORMAL", 0, DXGI_FORMAT_R32_UINT,    0,  0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
-            { "UV",    0, DXGI_FORMAT_R32_UINT, 0, 4, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "POSITION", 0, DXGI_FORMAT_R32_UINT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "LIGHT", 0, DXGI_FORMAT_R32_UINT, 0, 4, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+            { "TEXCOORD", 0, DXGI_FORMAT_R32_UINT, 0, 8, D3D11_INPUT_PER_VERTEX_DATA, 0 },
         };
         /*
         static constexpr D3D11_INPUT_ELEMENT_DESC VERTEX_DESC1[] =

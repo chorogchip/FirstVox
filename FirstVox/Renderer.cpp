@@ -69,7 +69,7 @@ namespace vox::ren::base
         sd.Windowed = TRUE;
         sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
         sd.Flags = 0;
-
+        
         for ( UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; ++driverTypeIndex )
         {
             driver_type_ = driver_types_[driverTypeIndex];

@@ -258,10 +258,10 @@ namespace vox::core::chunkmanager
                     if ( ch->state != EnumChunkStates::MESH_GENERATING )
                         goto PASS_THIS_CHUNK;
 
-                    vox::data::Chunk *adchs[4];
-                    for ( int i = 0; i < 4; ++i )
+                    vox::data::Chunk *adchs[8];
+                    for ( int i = 0; i < 8; ++i )
                     {
-                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( ch->chunk.GetCV(), vox::data::DIRECTION4_V4I[i]);
+                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( ch->chunk.GetCV(), vox::data::DIRECTION8_V4I[i]);
                         ChunkNode *adch = GetChunkNodeByChunkNum( adjacent_cv );
                         if ( adch == nullptr || adch->state == EnumChunkStates::LOADING )
                         {
@@ -270,7 +270,7 @@ namespace vox::core::chunkmanager
                         }
                         adchs[i] = &adch->chunk;
                     }
-                    ch->chunk.GenerateVertex( adchs[0], adchs[1], adchs[2], adchs[3] );
+                    ch->chunk.GenerateVertex( adchs );
 
                     if ( ch->state != EnumChunkStates::MESH_GENERATING )
                         goto PASS_THIS_CHUNK;
@@ -503,10 +503,10 @@ PASS_THIS_CHUNK:;
                 }
 GENERATE_VERTEX:
                 {
-                    vox::data::Chunk *adchs[4];
-                    for ( int i = 0; i < 4; ++i )
+                    vox::data::Chunk *adchs[8];
+                    for ( int i = 0; i < 8; ++i )
                     {
-                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
+                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION8_V4I[i] );
                         ChunkNode *adch = GetChunkNodeByChunkNum( adjacent_cv );
                         if ( adch == nullptr || adch->state == EnumChunkStates::LOADING )
                         {
@@ -514,7 +514,7 @@ GENERATE_VERTEX:
                         }
                         adchs[i] = &adch->chunk;
                     }
-                    ch->chunk.GenerateVertex( adchs[0], adchs[1], adchs[2], adchs[3] );
+                    ch->chunk.GenerateVertex( adchs );
                     ch->chunk.MapTempVertexToBuffer();
                     ch->state = EnumChunkStates::MESH_GENED;
                 }

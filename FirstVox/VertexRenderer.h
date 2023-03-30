@@ -6,65 +6,55 @@ namespace vox::ren::vertex
 {
     struct VertexChunk
     {
-        unsigned int PosNorm;
-        unsigned int UV;
+        unsigned int position;
+        unsigned int light;
+        unsigned int texcoord;
     };
     inline constexpr unsigned int VERTEX_CHUNK_STRIDE = sizeof( VertexChunk );
     inline constexpr unsigned int VERTEX_CHUNK_OFFSET = 0;
 
     inline constexpr float TEX_BL_SZ = 256.0f / 16.0f;
 
-#define GEN_VC(x, y, z, n, u, v) { x << 24U | y << 14U | z << 6U | n, v << 16U | u }
+    //#define GEN_VC(x, y, z, n, u, v) { x << 24U | y << 14U | z << 6U | n, v << 16U | u }
+#define GEN_VC(x, y, z, n, u, v) { x << 24U | y << 8U | z << 0U, 0U, v << 8U | u }
 
     inline constexpr VertexChunk VERTICES_BLOCK[] =
     {
         // up
-        GEN_VC( 0, 1, 1, 0, 0, 1 ),
-        GEN_VC( 1, 1, 0, 0, 1, 0 ),
-        GEN_VC( 0, 1, 0, 0, 0, 0 ),
         GEN_VC( 1, 1, 1, 0, 1, 1 ),
-        GEN_VC( 1, 1, 0, 0, 1, 0 ),
         GEN_VC( 0, 1, 1, 0, 0, 1 ),
+        GEN_VC( 0, 1, 0, 0, 0, 0 ),
+        GEN_VC( 1, 1, 0, 0, 1, 0 ),
 
         // down
-        GEN_VC( 1, 0, 1, 1, 1, 1 ),
-        GEN_VC( 0, 0, 0, 1, 0, 0 ),
-        GEN_VC( 1, 0, 0, 1, 1, 0 ),
-        GEN_VC( 0, 0, 1, 1, 0, 1 ),
-        GEN_VC( 0, 0, 0, 1, 0, 0 ),
-        GEN_VC( 1, 0, 1, 1, 1, 1 ),
+        GEN_VC( 1, 0, 0, 1, 1, 1 ),
+        GEN_VC( 0, 0, 0, 1, 0, 1 ),
+        GEN_VC( 0, 0, 1, 1, 0, 0 ),
+        GEN_VC( 1, 0, 1, 1, 1, 0 ),
 
         // front
-        GEN_VC( 1, 1, 1, 2, 1, 1 ),
-        GEN_VC( 0, 0, 1, 2, 0, 0 ),
-        GEN_VC( 1, 0, 1, 2, 1, 0 ),
-        GEN_VC( 0, 1, 1, 2, 0, 1 ),
-        GEN_VC( 0, 0, 1, 2, 0, 0 ),
-        GEN_VC( 1, 1, 1, 2, 1, 1 ),
+        GEN_VC( 0, 1, 1, 2, 1, 1 ),
+        GEN_VC( 1, 1, 1, 2, 0, 1 ),
+        GEN_VC( 1, 0, 1, 2, 0, 0 ),
+        GEN_VC( 0, 0, 1, 2, 1, 0 ),
 
         // back
-        GEN_VC( 0, 1, 0, 3, 0, 1 ),
-        GEN_VC( 1, 0, 0, 3, 1, 0 ),
-        GEN_VC( 0, 0, 0, 3, 0, 0 ),
         GEN_VC( 1, 1, 0, 3, 1, 1 ),
-        GEN_VC( 1, 0, 0, 3, 1, 0 ),
         GEN_VC( 0, 1, 0, 3, 0, 1 ),
+        GEN_VC( 0, 0, 0, 3, 0, 0 ),
+        GEN_VC( 1, 0, 0, 3, 1, 0 ),
 
         // right
-        GEN_VC( 1, 1, 0, 4, 1, 1 ),
-        GEN_VC( 1, 0, 1, 4, 0, 0 ),
-        GEN_VC( 1, 0, 0, 4, 1, 0 ),
-        GEN_VC( 1, 1, 1, 4, 0, 1 ),
-        GEN_VC( 1, 0, 1, 4, 0, 0 ),
-        GEN_VC( 1, 1, 0, 4, 1, 1 ),
+        GEN_VC( 1, 1, 1, 4, 1, 1 ),
+        GEN_VC( 1, 1, 0, 4, 0, 1 ),
+        GEN_VC( 1, 0, 0, 4, 0, 0 ),
+        GEN_VC( 1, 0, 1, 4, 1, 0 ),
 
         // left
-        GEN_VC( 0, 1, 1, 5, 0, 1 ),
-        GEN_VC( 0, 0, 0, 5, 1, 0 ),
-        GEN_VC( 0, 0, 1, 5, 0, 0 ),
         GEN_VC( 0, 1, 0, 5, 1, 1 ),
-        GEN_VC( 0, 0, 0, 5, 1, 0 ),
         GEN_VC( 0, 1, 1, 5, 0, 1 ),
+        GEN_VC( 0, 0, 1, 5, 0, 0 ),
+        GEN_VC( 0, 0, 0, 5, 1, 0 ),
     };
     /*
     inline constexpr VertexChunk VERTICES_BLOCK[] =
@@ -123,6 +113,4 @@ namespace vox::ren::vertex
     void ReleaseVertexBuffer( void* p_vertex_buffer );
     void MapVertex( void* p_vertex_buffer, const VertexChunk* vertex_chunk, size_t vertex_chunk_count );
     void RenderChunk( float x, float y, float z, const void* pp_vertex_buffer, size_t vertex_size );
-
-    const float* GetLastCalculatedCameraViewMatrix();
 }

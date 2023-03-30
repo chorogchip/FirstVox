@@ -41,6 +41,16 @@ namespace vox::data
         vox::data::vector::Set( 1, 0, 0, 0 ),
         vox::data::vector::Set( -1, 0, 0, 0 ),
     };
+    inline const vox::data::Vector4i DIRECTION8_V4I[8] = {
+        vox::data::vector::Set( 1, 0, 1, 0 ),
+        vox::data::vector::Set( 0, 0, 1, 0 ),
+        vox::data::vector::Set(-1, 0, 1, 0 ),
+        vox::data::vector::Set(-1, 0, 0, 0 ),
+        vox::data::vector::Set(-1, 0,-1, 0 ),
+        vox::data::vector::Set( 0, 0,-1, 0 ),
+        vox::data::vector::Set( 1, 0,-1, 0 ),
+        vox::data::vector::Set( 1, 0, 0, 0 ),
+    };
 
     enum class EnumBitSide6
     {

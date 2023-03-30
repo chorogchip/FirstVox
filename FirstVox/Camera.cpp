@@ -1,12 +1,11 @@
 #include "Camera.h"
 
 #include "Consts.h"
-#include "RendererViewer.h"
 
 namespace vox::core::camera
 {
     Camera::Camera() :
-        fov_y_( vox::consts::PI_DIV4 ),
+        fov_y_( vox::consts::PI / 3.0f ),
         asepct_ratio_( 0.0f ),
         entity {}
     {

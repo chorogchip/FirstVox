@@ -12,7 +12,7 @@ namespace vox::consts
     constexpr inline int DEBUG_ENABLED = 0;
 #endif
 
-    constexpr inline unsigned GAME_VERSION = 0x01'01'02'00;
+    constexpr inline unsigned GAME_VERSION = 0x01'01'03'00;
 
     constexpr inline float PI = 3.1415926535f;
     constexpr inline float PI_2 = PI * 2.0f;
@@ -39,7 +39,7 @@ namespace vox::consts
     static_assert(MAP_Y % CHUNK_Y == 0);
 
     constexpr inline float CAM_SPEED = 32.0f;
-    constexpr inline int INIT_RENDER_DIST = 12;
+    constexpr inline int INIT_RENDER_DIST = 6;
     constexpr inline int INIT_LOAD_DIST = INIT_RENDER_DIST + 2;
     constexpr static int MAX_RENDER_DIST = 13;
 

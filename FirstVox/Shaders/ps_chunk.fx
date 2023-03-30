@@ -11,14 +11,31 @@ cbuffer cbChangesEveryFrame : register(b2)
 
 struct PS_INPUT
 {
-    float2 Tex : TEX;
-    float3 Ref : REFLECTED;
-    float Diffuse : DIFFUSE;
-    float3 PosCamSpace : POS_CAM_SPACE;
+    float4 color : LIGHT_COLORS;  // RGB(GL+SUN), AO
+    float2 UV : TEXCOORD;
+    float fog : FOG;
 };
 
-float4 PS( PS_INPUT input ) : SV_TARGET
+struct PS_OUTPUT
 {
+    float4 color;
+};
+
+PS_OUTPUT PS( PS_INPUT input ) : SV_TARGET
+{
+    PS_OUTPUT output = (PS_OUTPUT)0;
+
+    float4 sample_color = txDiffuse.Sample( samplerPoint, input.UV );
+    float sample_alpha = sample_color.a;
+
+    output.color = sample_color * input.color.w;
+
+    output.color = pow( output.color, 1.6f );
+    output.color.a = sample_alpha;
+    return output;
+
+    // prev phong model
+    /*
     float ambient = 0.1f;
     float specular = 0.0f;
     if (input.Diffuse > 0.0f)
@@ -40,4 +57,5 @@ float4 PS( PS_INPUT input ) : SV_TARGET
     litColor.a = 1.0f;
 
     return litColor;
+    */
 }

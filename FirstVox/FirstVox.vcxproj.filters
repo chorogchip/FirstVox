@@ -150,9 +150,6 @@
     <ClInclude Include="GameUtils.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
-    <ClInclude Include="RendererViewer.h">
-      <Filter>헤더 파일\Render</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FirstVox.cpp">
@@ -214,9 +211,6 @@
     </ClCompile>
     <ClCompile Include="Entity.cpp">
       <Filter>소스 파일\Data</Filter>
-    </ClCompile>
-    <ClCompile Include="RendererViewer.cpp">
-      <Filter>소스 파일\Render</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
