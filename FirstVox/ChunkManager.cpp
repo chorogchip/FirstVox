@@ -62,7 +62,6 @@ namespace vox::core::chunkmanager
             state = EnumChunkStates::LOADING;
             chunk.ConstructForReuse( cv );
         }
-
     };
     static ChunkNode* game_chunks_arr_[GAME_CHUNKS_ARR_SZ];
     vox::data::QueueFor1WorkerThread<ChunkNode*, 32> chunknode_reuse_buffer;
@@ -95,6 +94,8 @@ namespace vox::core::chunkmanager
     static std::vector<vox::data::Entity*> game_chunkloaders_dynamic_remove_;
     static std::vector<ChunkLoaderStatic> game_chunkloaders_static_remove_;
 
+    unsigned char light_bfs_arr[vox::consts::CHUNK_BLOCKS_CNT * 12];
+    unsigned d_lights[(vox::consts::CHUNK_X + 2) * vox::consts::CHUNK_Y * (vox::consts::CHUNK_Z + 2)];
 
     static FORCE_INLINE vox::data::Vector4i VEC_CALL GetChunkNumByBlockPos( vox::data::Vector4i pos )
     {
@@ -201,6 +202,10 @@ namespace vox::core::chunkmanager
             {
                 if ( p_chunk->last_updated_gametick + 10 < game_ticks)
                 {
+                    if ( p_chunk->state == EnumChunkStates::LOADING ||
+                        p_chunk->state == EnumChunkStates::MESH_GENERATING )
+                        continue;
+
                     ChunkNode *const p_chunk_to_delete = p_chunk;
                     *pp_chunk = p_chunk->next;
                     p_chunk = *pp_chunk;
@@ -236,6 +241,9 @@ namespace vox::core::chunkmanager
 
     static void ChunkLoadThreadLoop()
     {
+        unsigned char* light_bfs_arr = (unsigned char*)malloc( sizeof( unsigned char ) * vox::consts::CHUNK_BLOCKS_CNT * 12 );
+        unsigned* d_lights = (unsigned*)malloc( sizeof( unsigned ) * (vox::consts::CHUNK_X + 2) * vox::consts::CHUNK_Y * (vox::consts::CHUNK_Z + 2) );
+
         while ( true )
         {
             if ( chunk_load_job_queue_.IsEmpty() &&
@@ -258,7 +266,7 @@ namespace vox::core::chunkmanager
                     if ( ch->state != EnumChunkStates::MESH_GENERATING )
                         goto PASS_THIS_CHUNK;
 
-                    vox::data::Chunk *adchs[8];
+                    vox::data::Chunk *adchs[9];
                     for ( int i = 0; i < 8; ++i )
                     {
                         const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( ch->chunk.GetCV(), vox::data::DIRECTION8_V4I[i]);
@@ -270,7 +278,8 @@ namespace vox::core::chunkmanager
                         }
                         adchs[i] = &adch->chunk;
                     }
-                    ch->chunk.GenerateVertex( adchs );
+                    adchs[8] = &ch->chunk;
+                    ch->chunk.GenerateVertex( adchs, light_bfs_arr, d_lights );
 
                     if ( ch->state != EnumChunkStates::MESH_GENERATING )
                         goto PASS_THIS_CHUNK;
@@ -305,6 +314,9 @@ PASS_THIS_CHUNK:;
 
             }
         }
+
+        free( d_lights );
+        free( light_bfs_arr );
     }
 
     int GetRenderChunkDist()
@@ -463,6 +475,7 @@ PASS_THIS_CHUNK:;
 
                 vox::data::Vector4i cv;
                 ChunkNode* ch;
+                bool is_chunk_in_frustum = true;
 
                 // check chunk is in render dist
                 if ( dist_sq > render_dist_sq )
@@ -474,52 +487,6 @@ PASS_THIS_CHUNK:;
                 if ( ch == nullptr )
                     goto DONT_RENDER_THIS_CHUNK;
 
-                switch ( ch->state )
-                {
-                case EnumChunkStates::LOADING:
-                default:
-                    goto DONT_RENDER_THIS_CHUNK;
-
-                case EnumChunkStates::LOAD_FINISHED:
-                    if ( chunk_vertex_job_queue_.IsFull() )
-                        goto GENERATE_VERTEX;
-                    ch->state = EnumChunkStates::MESH_GENERATING;
-                    chunk_vertex_job_queue_.Push( ch );
-                    goto DONT_RENDER_THIS_CHUNK;
-
-                case EnumChunkStates::MESH_GENERATING:
-                    goto DONT_RENDER_THIS_CHUNK;
-
-                case EnumChunkStates::MESH_UNMAPPED:
-                    ch->chunk.MapTempVertexToBuffer();
-                    ch->state = EnumChunkStates::MESH_GENED;
-                    goto RENDER_THIS_CHUNK;
-
-                case EnumChunkStates::MESH_NEEDED:
-                    goto GENERATE_VERTEX;
-
-                case EnumChunkStates::MESH_GENED:
-                    goto RENDER_THIS_CHUNK;
-                }
-GENERATE_VERTEX:
-                {
-                    vox::data::Chunk *adchs[8];
-                    for ( int i = 0; i < 8; ++i )
-                    {
-                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION8_V4I[i] );
-                        ChunkNode *adch = GetChunkNodeByChunkNum( adjacent_cv );
-                        if ( adch == nullptr || adch->state == EnumChunkStates::LOADING )
-                        {
-                            goto DONT_RENDER_THIS_CHUNK;
-                        }
-                        adchs[i] = &adch->chunk;
-                    }
-                    ch->chunk.GenerateVertex( adchs );
-                    ch->chunk.MapTempVertexToBuffer();
-                    ch->state = EnumChunkStates::MESH_GENED;
-                }
-
-RENDER_THIS_CHUNK:
                 // view frustum culling
                 {
                     // im busy abstraction will be done later
@@ -543,10 +510,70 @@ RENDER_THIS_CHUNK:
 
                         const float far_res = vox::utils::dot3( far_xyz, plane_f );
                         if ( far_res + plane_f[3] < 0.0f )
-                            goto DONT_RENDER_THIS_CHUNK;
+                        {
+                            is_chunk_in_frustum = true;
+                            break;
+                        }
                     }
 
                 }
+
+                switch ( ch->state )
+                {
+                case EnumChunkStates::LOADING:
+                default:
+                    goto DONT_RENDER_THIS_CHUNK;
+
+                case EnumChunkStates::LOAD_FINISHED:
+                    if ( chunk_vertex_job_queue_.IsFull() )
+                    {
+                        if ( is_chunk_in_frustum )
+                            goto GENERATE_VERTEX;
+                        else
+                            goto DONT_RENDER_THIS_CHUNK;
+                    }
+                    ch->state = EnumChunkStates::MESH_GENERATING;
+                    chunk_vertex_job_queue_.Push( ch );
+                    goto DONT_RENDER_THIS_CHUNK;
+
+                case EnumChunkStates::MESH_GENERATING:
+                    goto DONT_RENDER_THIS_CHUNK;
+
+                case EnumChunkStates::MESH_UNMAPPED:
+                    ch->chunk.MapTempVertexToBuffer();
+                    ch->state = EnumChunkStates::MESH_GENED;
+                    goto RENDER_THIS_CHUNK;
+
+                case EnumChunkStates::MESH_NEEDED:
+                    if ( is_chunk_in_frustum )
+                    {
+                        goto GENERATE_VERTEX;
+                    }
+                    goto DONT_RENDER_THIS_CHUNK;
+
+                case EnumChunkStates::MESH_GENED:
+                    goto RENDER_THIS_CHUNK;
+                }
+GENERATE_VERTEX:
+                {
+                    vox::data::Chunk *adchs[9];
+                    for ( int i = 0; i < 8; ++i )
+                    {
+                        const vox::data::Vector4i adjacent_cv = vox::data::vector::Add( cv, vox::data::DIRECTION8_V4I[i] );
+                        ChunkNode *adch = GetChunkNodeByChunkNum( adjacent_cv );
+                        if ( adch == nullptr || adch->state == EnumChunkStates::LOADING )
+                        {
+                            goto DONT_RENDER_THIS_CHUNK;
+                        }
+                        adchs[i] = &adch->chunk;
+                    }
+                    adchs[8] = &ch->chunk;
+                    ch->chunk.GenerateVertex( adchs, light_bfs_arr, d_lights );
+                    ch->chunk.MapTempVertexToBuffer();
+                    ch->state = EnumChunkStates::MESH_GENED;
+                }
+
+RENDER_THIS_CHUNK:
 
                 {
                     int sides = (int)vox::data::EnumBitSide6::FULL_VALUE;
@@ -594,19 +621,16 @@ DONT_RENDER_THIS_CHUNK:;
             {
                 ch->state = EnumChunkStates::MESH_NEEDED;
             }
-            static constexpr int zzxx[4] = { 2, 2, 0, 0 };
-            static constexpr int border[4] = { vox::consts::CHUNK_Z - 1, 0, vox::consts::CHUNK_X - 1, 0 };
-            for ( int i = 0; i < 4; ++i )
-                if ( bp[zzxx[i]] == border[i] )
+            for ( int i = 0; i < 8; ++i )
+            {
+                const vox::data::Vector4i adjacent_cv =
+                    vox::data::vector::Add( cv, vox::data::DIRECTION8_V4I[i] );
+                ChunkNode* const adch = GetChunkNodeByChunkNum( adjacent_cv );
+                if ( adch != nullptr && (int)adch->state > (int)EnumChunkStates::MESH_NEEDED )
                 {
-                    const vox::data::Vector4i adjacent_cv =
-                        vox::data::vector::Add( cv, vox::data::DIRECTION4_V4I[i] );
-                    ChunkNode* const adch = GetChunkNodeByChunkNum( adjacent_cv );
-                    if ( adch != nullptr && (int)adch->state > (int)EnumChunkStates::MESH_NEEDED )
-                    {
-                        adch->state = EnumChunkStates::MESH_NEEDED;
-                    }
+                    adch->state = EnumChunkStates::MESH_NEEDED;
                 }
+            }
             ch->chunk.SetBlock( bp[0], bp[1], bp[2], block );
             ch->chunk.Touch();
         }

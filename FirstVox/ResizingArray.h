@@ -17,7 +17,7 @@ namespace vox::data
         size_t size() const;
         const void* operator[]( int index ) const
         {
-            return (unsigned char*)buf_ + index * elem_size_;
+            return (unsigned char*)buf_ + (size_t)index * elem_size_;
         }
         void clear();
         void push_back( void* vertex_data );

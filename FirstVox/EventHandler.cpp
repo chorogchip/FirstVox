@@ -22,16 +22,11 @@ namespace vox::core::eventhandler {
         case VK_ESCAPE:
             break;
         case 'Q':
-            if ( vox::core::gamecore::hand_block != vox::data::EBlockID::AIR )
-            {
-                vox::core::gamecore::hand_block = vox::data::EBlockID::AIR;
-            }
-            else
             {
                 vox::data::Vector4i bpv;
                 const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
                     vox::core::gamecore::camera.entity.GetPositionVec(),
-                    vox::core::gamecore::camera.entity.GetEulerRotationVec(),
+                    vox::core::gamecore::camera.entity.GetForwardVec(),
                     &bpv
                 );
                 if ( col_side != vox::data::EnumSideCollideResult::FAILED )

@@ -175,6 +175,7 @@
     <ClInclude Include="ChunkManager.h" />
     <ClInclude Include="ChunkVertexBuffer.h" />
     <ClInclude Include="FirstVoxHeader.h" />
+    <ClInclude Include="LightInfos.h" />
     <ClInclude Include="Marker.h" />
     <ClInclude Include="ResizingArray.h" />
     <ClInclude Include="Consts.h" />
@@ -211,6 +212,7 @@
     <ClCompile Include="ChunkManager.cpp" />
     <ClCompile Include="ChunkVertexBuffer.cpp" />
     <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="LightInfos.cpp" />
     <ClCompile Include="ResizingArray.cpp" />
     <ClCompile Include="EBlockID.cpp" />
     <ClCompile Include="EventHandler.cpp" />

@@ -42,14 +42,13 @@ VS_OUTPUT VS( VS_INPUT input )
         (float)((input.pos & 0x000000ff)) - 0.5f,
         1.0f );
 
-
-    output.color = float4(
-        (float)((input.light & 0xff000000) >> 24),
-        (float)((input.light & 0x00ff0000) >> 16),
-        (float)((input.light & 0x0000ff00) >> 8),
-        0.0f );
     uint sun_light = (input.light & 0xf0) >> 4;
     uint AO = input.light & 0x3;
+    output.color = float4(
+        (float)((input.light & 0xff000000) >> 24) * (1.0f / 256.0f),
+        (float)((input.light & 0x00ff0000) >> 16) * (1.0f / 256.0f),
+        (float)((input.light & 0x0000ff00) >> 8) * (1.0f / 256.0f),
+        (float)AO * (1.0f / 4.0f) + 0.25f );
 
     output.UV = float2(
         (float)((input.UV & 0x000000ff)) * (1.0f / 16.0f),
@@ -60,8 +59,6 @@ VS_OUTPUT VS( VS_INPUT input )
     output.pos = mul( output.pos, World );
     output.pos = mul( output.pos, View );
     output.pos = mul( output.pos, Projection );
-
-    output.color.a = (float)AO * (1.0f / 4.0f) + 0.25f;
 
     return output;
 
