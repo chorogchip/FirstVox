@@ -12,7 +12,7 @@ cbuffer cbChangesEveryFrame : register(b2)
 struct PS_INPUT
 {
     float4 color : LIGHT_COLORS;  // RGB(GL+SUN), AO
-    float2 UV : TEXCOORD;
+    float3 UV : TEXCOORD;
     float fog : FOG;
 };
 
@@ -26,12 +26,13 @@ PS_OUTPUT PS( PS_INPUT input ) : SV_TARGET
     PS_OUTPUT output = (PS_OUTPUT)0;
 
     float3 output_color = (float3)0;
-    float4 sample_color = txDiffuse.Sample( samplerPoint, input.UV );
+    //float4 sample_color = txDiffuse.Sample( samplerPoint, input.UV );
+    float4 sample_color = float4(input.UV, 1.0f);
     float sample_alpha = sample_color.a;
 
     output_color = sample_color.rgb * input.color.rgb * input.color.a;
 
-    output.color.xyz = pow( output_color, 1.6f );
+    output.color.xyz = pow( output_color, 2.2f );
     output.color.a = sample_alpha;
     return output;
 

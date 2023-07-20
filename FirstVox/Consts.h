@@ -24,8 +24,8 @@ namespace vox::consts
     constexpr inline auto MICROSEC_PER_TICK = std::chrono::microseconds(1000LL * 1000LL / TPS);
 
     constexpr inline int MAP_Y = 256;
-    constexpr inline int CHUNK_X = 64;
-    constexpr inline int CHUNK_Z = 64;
+    constexpr inline int CHUNK_X = 32;
+    constexpr inline int CHUNK_Z = 32;
     constexpr inline int CHUNK_Y = 256;
     constexpr inline int CHUNK_X_LOG2 = 32 - (int)std::countl_zero( (unsigned)vox::consts::CHUNK_X - 1U );
     constexpr inline int CHUNK_Y_LOG2 = 32 - (int)std::countl_zero( (unsigned)vox::consts::CHUNK_Y - 1U );
@@ -39,9 +39,9 @@ namespace vox::consts
     static_assert(MAP_Y % CHUNK_Y == 0);
 
     constexpr inline float CAM_SPEED = 32.0f;
-    constexpr inline int INIT_RENDER_DIST = 2;
+    constexpr inline int INIT_RENDER_DIST = 16;
     constexpr inline int INIT_LOAD_DIST = INIT_RENDER_DIST + 2;
-    constexpr static int MAX_RENDER_DIST = 13;
+    constexpr static int MAX_RENDER_DIST = 16;
 
     constexpr inline float TEX_BLOCK_WID_PIX = 256.0f;
     constexpr inline float TEX_BLOCK_HEI_PIX = 256.0f;

@@ -26,7 +26,7 @@ struct VS_INPUT
 struct VS_OUTPUT
 {
     float4 color : LIGHT_COLORS;  // RGB(GL+SUN), AO
-    float2 UV : TEXCOORD;
+    float3 UV : TEXCOORD;
     float fog : FOG;
     float4 pos : SV_POSITION;
 };
@@ -50,15 +50,22 @@ VS_OUTPUT VS( VS_INPUT input )
         (float)((input.light & 0x0000ff00) >> 8) * (1.0f / 256.0f),
         (float)AO * (1.0f / 4.0f) + 0.25f );
 
+        /*
     output.UV = float2(
         (float)((input.UV & 0x000000ff)) * (1.0f / 16.0f),
         (float)((input.UV & 0x0000ff00) >> 8) * (1.0f / 16.0f));
+        */
+    output.UV = float3(
+        (float)((input.UV & 0xff000000) >> 24) * (1.0f / 256.0f),  
+        (float)((input.UV & 0x00ff0000) >> 16) * (1.0f / 256.0f),  
+        (float)((input.UV & 0x0000ff00) >> 8) * (1.0f / 256.0f)
+    );
 
     output.fog = 0.0f;
 
     output.pos = mul( output.pos, World );
     output.pos = mul( output.pos, View );
-    output.pos = mul( output.pos, Projection );
+    output.pos = mul(output.pos, Projection);
 
     return output;
 

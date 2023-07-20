@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <queue>
+#include <cstdlib>
 
 #include "FirstVoxHeader.h"
 #include "Perlin.h"
@@ -126,6 +127,11 @@ FIN_INSERT_LIGHT:;
             this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_dirt) / sizeof(float), multipliers_dirt,
             0x12345678
         };
+        static constexpr float multipliers_grass[3] = { 0.375f, 0.25f, 0.125f };
+        vox::rand::perlin::PerlinGeneratorUnit perlin_grass{
+            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_dirt) / sizeof(float), multipliers_dirt,
+                0x12345678
+        };
 
         float cxr = 1.0f / (float)vox::consts::CHUNK_X;
         float czr = 1.0f / (float)vox::consts::CHUNK_Z;
@@ -139,21 +145,91 @@ FIN_INSERT_LIGHT:;
                 const float sample_dirt = perlin_dirt.Sample(
                     (float)ix * cxr, (float)iz * czr
                 );
-
-                const int rand_height_stone = 30 + (int)((float)vox::consts::MAP_Y * sample_stone * 0.1f);
+                const float sample_grass = perlin_dirt.Sample(
+                    (float)ix * cxr, (float)iz * czr
+                );
+#if 0
+                const int rand_height_stone = 20 + (int)((float)vox::consts::MAP_Y * sample_stone * 0.4f);
                 const int height_stone = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_stone ) );
-                const int rand_height_dirt = rand_height_stone + 2 + (int)((float)vox::consts::MAP_Y * sample_dirt * 0.1f);
+
+                const int rand_height_dirt = 30 + (int)((float)vox::consts::MAP_Y * sample_dirt * 0.05f);
                 const int height_dirt = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_dirt ) );
 
+                const int rand_height_grass = 1 + height_dirt + (int)((float)vox::consts::MAP_Y * sample_grass * 0.025f);
+                const int height_grass = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_grass ) );
+
                 int iy = 0;
-                for ( ; iy < rand_height_stone; ++iy )
-                {
-                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::COBBLESTONE ) );
-                }
-                for ( ; iy < rand_height_dirt; ++iy )
+                for ( ; iy <= height_dirt; ++iy )
                 {
                     this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::DIRT ) );
                 }
+                for ( ; iy <= height_grass; ++iy )
+                {
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::GRASS ) );
+                }
+                iy = 0;
+                for ( ; iy <= height_stone; ++iy )
+                {
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::STONE ) );
+                }
+#elif 0
+                const int rand_height_stone = 30 + (int)((float)vox::consts::MAP_Y * sample_stone * 0.025f);
+                const int height_stone = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_stone ) );
+
+                const int rand_height_dirt = 10 + (int)((float)vox::consts::MAP_Y * sample_dirt * 0.5f);
+                const int height_dirt = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_dirt ) );
+
+                const int rand_height_grass = 1 + height_dirt + (int)((float)vox::consts::MAP_Y * sample_grass * 0.025f);
+                const int height_grass = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_grass ) );
+
+                int iy = 0;
+                iy = 0;
+                for ( ; iy <= height_stone; ++iy )
+                {
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::SAND ) );
+                }
+                iy = 0;
+                for ( ; iy <= height_dirt; ++iy )
+                {
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::STONE ) );
+                }
+#elif 1
+
+                const int rand_height_stone = 20 + (int)((float)vox::consts::MAP_Y * sample_stone * 0.4f);
+                const int height_stone = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_stone ) );
+
+                const int rand_height_dirt = 30 + (int)((float)vox::consts::MAP_Y * sample_dirt * 0.05f);
+                const int height_dirt = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_dirt ) );
+
+                const int rand_height_grass = 1 + height_dirt + (int)((float)vox::consts::MAP_Y * sample_grass * 0.025f);
+                const int height_grass = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_grass ) );
+
+                int iy = 0;
+                for ( ; iy <= height_dirt; ++iy )
+                {
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::DIRT ) );
+                }
+                for ( ; iy <= height_grass; ++iy )
+                {
+                    this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::GRASS ) );
+                }
+                if (std::rand() % 1000 == 0)
+                {
+                    int hei = 5 + std::rand() % 10;
+                    for (int iyy = 0; iyy < hei; ++iyy)
+                    {
+                       this->SetBlock( ix, iy + iyy, iz, Block( vox::data::EBlockID::TREE_Y ) );
+                    }
+                    int rad = hei/3 + std::rand() % 5;
+                    for (int i1 = -rad; i1 <= rad; ++i1)
+                        for (int i2 = -rad; i2 <= rad; ++i2)
+                            for (int i3 = -rad; i3 <= rad; ++i3)
+                                if ( std::rand() % (rad * rad * 2) >= i1 * i1 + i2 * i2 + i3 * i3 )
+                                    this->SetBlock( ix + i1, iy + hei + i2, iz + i3, Block( vox::data::EBlockID::LEAF ) );
+                }
+
+
+#endif
 
             }
     }
@@ -213,6 +289,8 @@ FIN_INSERT_LIGHT:;
         fclose( fp );
     }
 
+    constexpr static bool APPLY_GLOBAL_ILLUMINATION = false;
+
     void Chunk::GenerateVertex( Chunk* adj_chks[9],
         unsigned char light_bfs_arr[vox::consts::CHUNK_BLOCKS_CNT * 12],
         unsigned d_lights[(vox::consts::CHUNK_X + 2) * (vox::consts::CHUNK_Y) * (vox::consts::CHUNK_Z + 2)] )
@@ -224,6 +302,7 @@ FIN_INSERT_LIGHT:;
 
         // 10 MB BFS arr!
 
+#if APPLY_GLOBAL_ILLUMINATION
         
         constexpr static size_t LIGHT_BFS_ARR_SZ = sizeof( unsigned char ) * vox::consts::CHUNK_BLOCKS_CNT * 12;
         /*
@@ -241,217 +320,275 @@ FIN_INSERT_LIGHT:;
             return;
         }
         */
-        memset( d_lights, 0, sizeof( unsigned ) *
-            (vox::consts::CHUNK_X + 2) * (vox::consts::CHUNK_Y) * (vox::consts::CHUNK_Z + 2) );
 
-        int adj_chunk_max_y = 0;
-        for ( int chk_ind = 0; chk_ind < 9; ++chk_ind )
-        {
-            adj_chunk_max_y = std::max( adj_chunk_max_y, (int)adj_chks[chk_ind]->max_block_y_ );
-        }
+            memset( d_lights, 0, sizeof( unsigned ) *
+                (vox::consts::CHUNK_X + 2) * (vox::consts::CHUNK_Y) * (vox::consts::CHUNK_Z + 2) );
 
-        for ( int lit_type_ind = 0; lit_type_ind < (int)vox::data::lightinfos::EnumLightType::MAX_SIZE; ++lit_type_ind )
-        {
-
-            memset( light_bfs_arr, 0, LIGHT_BFS_ARR_SZ );
-            std::vector<vox::data::lightinfos::LightInstance> vec1, vec2;
-
+            int adj_chunk_max_y = 0;
             for ( int chk_ind = 0; chk_ind < 9; ++chk_ind )
             {
-                const Chunk* ch = adj_chks[chk_ind];
-                const int dxcv = vox::data::vector::GetX( ch->cv_ ) - vox::data::vector::GetX( cv_ ) + 1;
-                const int dzcv = vox::data::vector::GetZ( ch->cv_ ) - vox::data::vector::GetZ( cv_ ) + 1;
-
-                for ( const auto& lit : ch->light_infos_ )
-                    if (lit.type == (vox::data::lightinfos::EnumLightType)lit_type_ind )
-                    {
-                        static_assert(vox::consts::CHUNK_X == 64);
-                        static_assert(vox::consts::CHUNK_Y == 256);
-                        static_assert(vox::consts::CHUNK_Z == 64);
-
-                        for ( const auto& litp : lit.instances )
-                        {
-                            const unsigned lit_pos_x = (litp.positions_MSB_X6_Z8_Y8_LSB >> 16U) + dxcv * vox::consts::CHUNK_X;
-                            const unsigned lit_pos_y = litp.positions_MSB_X6_Z8_Y8_LSB & 0xff;
-                            const unsigned lit_pos_z = (litp.positions_MSB_X6_Z8_Y8_LSB >> 8U & 0xff) + dzcv * vox::consts::CHUNK_Z;
-                            
-                            if ( (int)lit_pos_x + (int)litp.power < vox::consts::CHUNK_X ) continue;
-                            if ( (int)lit_pos_x - (int)litp.power >= vox::consts::CHUNK_X * 2 ) continue;
-                            if ( (int)lit_pos_z + (int)litp.power < vox::consts::CHUNK_Z ) continue;
-                            if ( (int)lit_pos_z - (int)litp.power >= vox::consts::CHUNK_Z * 2 ) continue;
-
-                            const unsigned lit_pos = lit_pos_x << 16U | lit_pos_y | lit_pos_z << 8U;
-                            light_bfs_arr[lit_pos] = litp.power;
-                            vec1.push_back( { lit_pos, litp.power - 1 } );
-                        }
-                    }
+                adj_chunk_max_y = std::max( adj_chunk_max_y, (int)adj_chks[chk_ind]->max_block_y_ );
             }
 
-            int bfs_x_min = 999999999;
-            int bfs_x_max = -999999999;
-            int bfs_y_min = 999999999;
-            int bfs_y_max = -999999999;
-            int bfs_z_min = 999999999;
-            int bfs_z_max = -999999999;
-
-            while ( true )
+            for ( int lit_type_ind = 0; lit_type_ind < (int)vox::data::lightinfos::EnumLightType::MAX_SIZE; ++lit_type_ind )
             {
-                const size_t sz1 = vec1.size();
-                if ( sz1 == 0 ) break;
-                for ( size_t i = 0; i < sz1; ++i )
+                std::vector<vox::data::lightinfos::LightInstance> vec1, vec2;
+
+                for ( int chk_ind = 0; chk_ind < 9; ++chk_ind )
                 {
-                    // must add scanning block isfull.. no....
-                    const auto pos = vec1[i].positions_MSB_X6_Z8_Y8_LSB;
-                    const auto lit_pow = vec1[i].power;
+                    const Chunk* ch = adj_chks[chk_ind];
+                    const int dxcv = vox::data::vector::GetX( ch->cv_ ) - vox::data::vector::GetX( cv_ ) + 1;
+                    const int dzcv = vox::data::vector::GetZ( ch->cv_ ) - vox::data::vector::GetZ( cv_ ) + 1;
 
-                    bfs_x_min = std::min( bfs_x_min, (int)pos & 0xff0000 );
-                    bfs_x_max = std::max( bfs_x_max, (int)pos & 0xff0000 );
-                    bfs_y_min = std::min( bfs_y_min, (int)pos & 0xff );
-                    bfs_y_max = std::max( bfs_y_max, (int)pos & 0xff );
-                    bfs_z_min = std::min( bfs_z_min, (int)pos & 0xff00 );
-                    bfs_z_max = std::max( bfs_z_max, (int)pos & 0xff00 );
+                    for ( const auto& lit : ch->light_infos_ )
+                        if ( lit.type == (vox::data::lightinfos::EnumLightType)lit_type_ind )
+                        {
+                            static_assert(vox::consts::CHUNK_X == 64);
+                            static_assert(vox::consts::CHUNK_Y == 256);
+                            static_assert(vox::consts::CHUNK_Z == 64);
 
-                    if ( (pos & 0xff0000) != 0x0 && light_bfs_arr[pos - 0x10000] < lit_pow )
-                        light_bfs_arr[pos - 0x10000] = lit_pow, vec2.push_back( { pos - 0x10000, lit_pow - 1 } );
-                    if ( (pos & 0xff0000) != 0xbf0000 && light_bfs_arr[pos + 0x10000] < lit_pow )
-                        light_bfs_arr[pos + 0x10000] = lit_pow, vec2.push_back( { pos + 0x10000, lit_pow - 1 } );
-                    if ( (pos & 0xff00) != 0x0 && light_bfs_arr[pos - 0x100] < lit_pow )
-                        light_bfs_arr[pos - 0x100] = lit_pow, vec2.push_back( { pos - 0x100, lit_pow - 1 } );
-                    if ( (pos & 0xff00) != 0xbf00 && light_bfs_arr[pos + 0x100] < lit_pow )
-                        light_bfs_arr[pos + 0x100] = lit_pow, vec2.push_back( { pos + 0x100, lit_pow - 1 } );
-                    if ( (pos & 0xff) != 0x0 && light_bfs_arr[pos - 0x1] < lit_pow )
-                        light_bfs_arr[pos - 0x1] = lit_pow, vec2.push_back( { pos - 0x1, lit_pow - 1 } );
-                    if ( (pos & 0xff) != adj_chunk_max_y && light_bfs_arr[pos + 0x1] < lit_pow )
-                        light_bfs_arr[pos + 0x1] = lit_pow, vec2.push_back( { pos + 0x1, lit_pow - 1 } );
+                            for ( const auto& litp : lit.instances )
+                            {
+                                const unsigned lit_pos_x = (litp.positions_MSB_X6_Z8_Y8_LSB >> 16U) + dxcv * vox::consts::CHUNK_X;
+                                const unsigned lit_pos_y = litp.positions_MSB_X6_Z8_Y8_LSB & 0xff;
+                                const unsigned lit_pos_z = (litp.positions_MSB_X6_Z8_Y8_LSB >> 8U & 0xff) + dzcv * vox::consts::CHUNK_Z;
+
+                                if ( (int)lit_pos_x + (int)litp.power < vox::consts::CHUNK_X ) continue;
+                                if ( (int)lit_pos_x - (int)litp.power >= vox::consts::CHUNK_X * 2 ) continue;
+                                if ( (int)lit_pos_z + (int)litp.power < vox::consts::CHUNK_Z ) continue;
+                                if ( (int)lit_pos_z - (int)litp.power >= vox::consts::CHUNK_Z * 2 ) continue;
+
+                                const unsigned lit_pos = lit_pos_x << 16U | lit_pos_y | lit_pos_z << 8U;
+                                light_bfs_arr[lit_pos] = litp.power;
+                                vec1.push_back( { lit_pos, litp.power - 1 } );
+                            }
+                        }
                 }
-                vec1.clear();
 
-                const size_t sz2 = vec2.size();
-                if ( sz2 == 0 ) break;
-                for ( size_t i = 0; i < sz2; ++i )
+                if ( !vec1.empty() )
                 {
-                    // must add scanning block isfull.. no....
-                    const auto pos = vec2[i].positions_MSB_X6_Z8_Y8_LSB;
-                    const auto lit_pow = vec2[i].power;
-
-                    bfs_x_min = std::min( bfs_x_min, (int)pos & 0xff0000 );
-                    bfs_x_max = std::max( bfs_x_max, (int)pos & 0xff0000 );
-                    bfs_y_min = std::min( bfs_y_min, (int)pos & 0xff );
-                    bfs_y_max = std::max( bfs_y_max, (int)pos & 0xff );
-                    bfs_z_min = std::min( bfs_z_min, (int)pos & 0xff00 );
-                    bfs_z_max = std::max( bfs_z_max, (int)pos & 0xff00 );
-
-                    if ( (pos & 0xff0000) != 0x0 && light_bfs_arr[pos - 0x10000] < lit_pow )
-                        light_bfs_arr[pos - 0x10000] = lit_pow, vec1.push_back( { pos - 0x10000, lit_pow - 1 } );
-                    if ( (pos & 0xff0000) != 0xbf0000 && light_bfs_arr[pos + 0x10000] < lit_pow )
-                        light_bfs_arr[pos + 0x10000] = lit_pow, vec1.push_back( { pos + 0x10000, lit_pow - 1 } );
-                    if ( (pos & 0xff00) != 0x0 && light_bfs_arr[pos - 0x100] < lit_pow )
-                        light_bfs_arr[pos - 0x100] = lit_pow, vec1.push_back( { pos - 0x100, lit_pow - 1 } );
-                    if ( (pos & 0xff00) != 0xbf00 && light_bfs_arr[pos + 0x100] < lit_pow )
-                        light_bfs_arr[pos + 0x100] = lit_pow, vec1.push_back( { pos + 0x100, lit_pow - 1 } );
-                    if ( (pos & 0xff) != 0x0 && light_bfs_arr[pos - 0x1] < lit_pow )
-                        light_bfs_arr[pos - 0x1] = lit_pow, vec1.push_back( { pos - 0x1, lit_pow - 1 } );
-                    if ( (pos & 0xff) != adj_chunk_max_y && light_bfs_arr[pos + 0x1] < lit_pow )
-                        light_bfs_arr[pos + 0x1] = lit_pow, vec1.push_back( { pos + 0x1, lit_pow - 1 } );
+                    memset( light_bfs_arr, 0, LIGHT_BFS_ARR_SZ );
                 }
-                vec2.clear();
-            }
 
-            bfs_x_min = std::max( vox::consts::CHUNK_X - 1, bfs_x_min >> 16 ) - vox::consts::CHUNK_X;
-            bfs_x_max = std::min( 2 * vox::consts::CHUNK_X, bfs_x_max >> 16 ) - vox::consts::CHUNK_X;
-            bfs_y_min = std::max( 0, bfs_y_min & 0xff );
-            bfs_y_max = std::min( vox::consts::CHUNK_Y - 1, bfs_y_max & 0xff );
-            bfs_z_min = std::max( vox::consts::CHUNK_Z - 1, bfs_z_min >> 8 & 0xff ) - vox::consts::CHUNK_Z;
-            bfs_z_max = std::min( 2 * vox::consts::CHUNK_Z, bfs_z_max >> 8 & 0xff ) - vox::consts::CHUNK_Z;
+                int bfs_x_min = 999999999;
+                int bfs_x_max = -999999999;
+                int bfs_y_min = 999999999;
+                int bfs_y_max = -999999999;
+                int bfs_z_min = 999999999;
+                int bfs_z_max = -999999999;
 
-            const vox::data::lightinfos::R8G8B8* ptr =
-                vox::data::lightinfos::GetRGBTable( (vox::data::lightinfos::EnumLightType)lit_type_ind );
-
-            for ( int iy = bfs_y_min; iy <= bfs_y_max; ++iy )
-                for ( int iz = bfs_z_min; iz <= bfs_z_max; ++iz )
-                    for ( int ix = bfs_x_min; ix <= bfs_x_max; ++ix )
+                while ( true )
+                {
+                    const size_t sz1 = vec1.size();
+                    if ( sz1 == 0 ) break;
+                    for ( size_t i = 0; i < sz1; ++i )
                     {
-                        USING_INTEGER_PTR_TO_OTHER_INTEGER_PTR_TRICK;
-                        const unsigned bfs_arr_ind = iy | (iz + vox::consts::CHUNK_Z) << 8U | (ix + vox::consts::CHUNK_X) << 16U;
-                        const unsigned char lit = light_bfs_arr[bfs_arr_ind];
-                        if ( lit == 0 ) continue;
-                        const auto* const p_RGB = &ptr[lit];
-                        const unsigned ind =
-                            ix + 1U +
-                            (iz + 1U) * (vox::consts::CHUNK_X + 2) +
-                            iy * (vox::consts::CHUNK_X + 2U) * (vox::consts::CHUNK_Z + 2U);
-                        unsigned char* const p_lit = (unsigned char*)&d_lights[ind];
-                        if ( p_lit[0] < p_RGB->R ) p_lit[0] = p_RGB->R;
-                        if ( p_lit[1] < p_RGB->G ) p_lit[1] = p_RGB->G;
-                        if ( p_lit[2] < p_RGB->B ) p_lit[2] = p_RGB->B;
-                    }
+                        // must add scanning block isfull.. no....
+                        const auto pos = vec1[i].positions_MSB_X6_Z8_Y8_LSB;
+                        const auto lit_pow = vec1[i].power;
 
-        }  // for each light types
+                        bfs_x_min = std::min( bfs_x_min, (int)pos & 0xff0000 );
+                        bfs_x_max = std::max( bfs_x_max, (int)pos & 0xff0000 );
+                        bfs_y_min = std::min( bfs_y_min, (int)pos & 0xff );
+                        bfs_y_max = std::max( bfs_y_max, (int)pos & 0xff );
+                        bfs_z_min = std::min( bfs_z_min, (int)pos & 0xff00 );
+                        bfs_z_max = std::max( bfs_z_max, (int)pos & 0xff00 );
+
+                        if ( (pos & 0xff0000) != 0x0 && light_bfs_arr[pos - 0x10000] < lit_pow )
+                            light_bfs_arr[pos - 0x10000] = lit_pow, vec2.push_back( { pos - 0x10000, lit_pow - 1 } );
+                        if ( (pos & 0xff0000) != 0xbf0000 && light_bfs_arr[pos + 0x10000] < lit_pow )
+                            light_bfs_arr[pos + 0x10000] = lit_pow, vec2.push_back( { pos + 0x10000, lit_pow - 1 } );
+                        if ( (pos & 0xff00) != 0x0 && light_bfs_arr[pos - 0x100] < lit_pow )
+                            light_bfs_arr[pos - 0x100] = lit_pow, vec2.push_back( { pos - 0x100, lit_pow - 1 } );
+                        if ( (pos & 0xff00) != 0xbf00 && light_bfs_arr[pos + 0x100] < lit_pow )
+                            light_bfs_arr[pos + 0x100] = lit_pow, vec2.push_back( { pos + 0x100, lit_pow - 1 } );
+                        if ( (pos & 0xff) != 0x0 && light_bfs_arr[pos - 0x1] < lit_pow )
+                            light_bfs_arr[pos - 0x1] = lit_pow, vec2.push_back( { pos - 0x1, lit_pow - 1 } );
+                        if ( (pos & 0xff) != adj_chunk_max_y && light_bfs_arr[pos + 0x1] < lit_pow )
+                            light_bfs_arr[pos + 0x1] = lit_pow, vec2.push_back( { pos + 0x1, lit_pow - 1 } );
+                    }
+                    vec1.clear();
+
+                    const size_t sz2 = vec2.size();
+                    if ( sz2 == 0 ) break;
+                    for ( size_t i = 0; i < sz2; ++i )
+                    {
+                        // must add scanning block isfull.. no....
+                        const auto pos = vec2[i].positions_MSB_X6_Z8_Y8_LSB;
+                        const auto lit_pow = vec2[i].power;
+
+                        bfs_x_min = std::min( bfs_x_min, (int)pos & 0xff0000 );
+                        bfs_x_max = std::max( bfs_x_max, (int)pos & 0xff0000 );
+                        bfs_y_min = std::min( bfs_y_min, (int)pos & 0xff );
+                        bfs_y_max = std::max( bfs_y_max, (int)pos & 0xff );
+                        bfs_z_min = std::min( bfs_z_min, (int)pos & 0xff00 );
+                        bfs_z_max = std::max( bfs_z_max, (int)pos & 0xff00 );
+
+                        if ( (pos & 0xff0000) != 0x0 && light_bfs_arr[pos - 0x10000] < lit_pow )
+                            light_bfs_arr[pos - 0x10000] = lit_pow, vec1.push_back( { pos - 0x10000, lit_pow - 1 } );
+                        if ( (pos & 0xff0000) != 0xbf0000 && light_bfs_arr[pos + 0x10000] < lit_pow )
+                            light_bfs_arr[pos + 0x10000] = lit_pow, vec1.push_back( { pos + 0x10000, lit_pow - 1 } );
+                        if ( (pos & 0xff00) != 0x0 && light_bfs_arr[pos - 0x100] < lit_pow )
+                            light_bfs_arr[pos - 0x100] = lit_pow, vec1.push_back( { pos - 0x100, lit_pow - 1 } );
+                        if ( (pos & 0xff00) != 0xbf00 && light_bfs_arr[pos + 0x100] < lit_pow )
+                            light_bfs_arr[pos + 0x100] = lit_pow, vec1.push_back( { pos + 0x100, lit_pow - 1 } );
+                        if ( (pos & 0xff) != 0x0 && light_bfs_arr[pos - 0x1] < lit_pow )
+                            light_bfs_arr[pos - 0x1] = lit_pow, vec1.push_back( { pos - 0x1, lit_pow - 1 } );
+                        if ( (pos & 0xff) != adj_chunk_max_y && light_bfs_arr[pos + 0x1] < lit_pow )
+                            light_bfs_arr[pos + 0x1] = lit_pow, vec1.push_back( { pos + 0x1, lit_pow - 1 } );
+                    }
+                    vec2.clear();
+                }
+
+                bfs_x_min = std::max( vox::consts::CHUNK_X - 1, bfs_x_min >> 16 ) - vox::consts::CHUNK_X;
+                bfs_x_max = std::min( 2 * vox::consts::CHUNK_X, bfs_x_max >> 16 ) - vox::consts::CHUNK_X;
+                bfs_y_min = std::max( 0, bfs_y_min & 0xff );
+                bfs_y_max = std::min( vox::consts::CHUNK_Y - 1, bfs_y_max & 0xff );
+                bfs_z_min = std::max( vox::consts::CHUNK_Z - 1, bfs_z_min >> 8 & 0xff ) - vox::consts::CHUNK_Z;
+                bfs_z_max = std::min( 2 * vox::consts::CHUNK_Z, bfs_z_max >> 8 & 0xff ) - vox::consts::CHUNK_Z;
+
+                const vox::data::lightinfos::R8G8B8* ptr =
+                    vox::data::lightinfos::GetRGBTable( (vox::data::lightinfos::EnumLightType)lit_type_ind );
+
+                for ( int iy = bfs_y_min; iy <= bfs_y_max; ++iy )
+                    for ( int iz = bfs_z_min; iz <= bfs_z_max; ++iz )
+                        for ( int ix = bfs_x_min; ix <= bfs_x_max; ++ix )
+                        {
+                            USING_INTEGER_PTR_TO_OTHER_INTEGER_PTR_TRICK;
+                            const unsigned bfs_arr_ind = iy | (iz + vox::consts::CHUNK_Z) << 8U | (ix + vox::consts::CHUNK_X) << 16U;
+                            const unsigned char lit = light_bfs_arr[bfs_arr_ind];
+                            if ( lit == 0 ) continue;
+                            const auto* const p_RGB = &ptr[lit];
+                            const unsigned ind =
+                                ix + 1U +
+                                (iz + 1U) * (vox::consts::CHUNK_X + 2) +
+                                iy * (vox::consts::CHUNK_X + 2U) * (vox::consts::CHUNK_Z + 2U);
+                            unsigned char* const p_lit = (unsigned char*)&d_lights[ind];
+                            if ( p_lit[0] < p_RGB->R ) p_lit[0] = p_RGB->R;
+                            if ( p_lit[1] < p_RGB->G ) p_lit[1] = p_RGB->G;
+                            if ( p_lit[2] < p_RGB->B ) p_lit[2] = p_RGB->B;
+                        }
+
+            }  // for each light types
+        }  // #if  APPLY_GLOBAL_ILLUMINATION
+#endif
 
         // mesh start
-        for ( int iy = 0; iy < vox::consts::CHUNK_Y; ++iy )
-            for ( int iz = 0; iz < vox::consts::CHUNK_Z; ++iz )
-                for ( int ix = 0; ix < vox::consts::CHUNK_X; ++ix )
+        unsigned adj_blocks_is_full = 0U;
+        bool to_gen_part = false;
+        for ( int iz = 0; iz < vox::consts::CHUNK_Z; ++iz )
+            for ( int ix = 0; ix < vox::consts::CHUNK_X; ++ix )
+            {
+                to_gen_part = false;
+                for ( int iy = 0; iy < vox::consts::CHUNK_Y; ++iy )
                 {
                     const auto id = this->GetBlockId( ix, iy, iz );
                     if ( id != EBlockID::AIR )
                     {
-
-                        vox::data::lightinfos::R8G8B8 adj_blocks_rgb[27];
-                        memset( adj_blocks_rgb, 0, sizeof( adj_blocks_rgb ) );
-                        unsigned adj_blocks_is_full = 0U;
-                        unsigned adji = 0U;
-                        for ( int dy = -1; dy <= 1; ++dy )
-                            for ( int dz = 1; dz >= -1; --dz )
-                                for ( int dx = -1; dx <= 1; ++dx )
-                                {
-                                    const int iiy = iy + dy;
-                                    const int iiz = iz + dz;
-                                    const int iix = ix + dx;
-
-                                    unsigned is_full_dblock;
-                                    if ( iiy < 0 || iiy >= vox::consts::CHUNK_Y )
+#if APPLY_GLOBAL_ILLUMINATION
+                            vox::data::lightinfos::R8G8B8 adj_blocks_rgb[27];
+                            memset( adj_blocks_rgb, 0, sizeof( adj_blocks_rgb ) );
+#endif
+                        if (!to_gen_part) {
+                            to_gen_part = true;
+                            adj_blocks_is_full = 0U;
+                            unsigned adji = 0U;
+                            for ( int dy = -1; dy <= 1; ++dy )
+                                for ( int dz = 1; dz >= -1; --dz )
+                                    for ( int dx = -1; dx <= 1; ++dx )
                                     {
-                                        is_full_dblock = 0U;
-                                        adj_blocks_is_full |= is_full_dblock << adji;
-                                        ++adji;
-                                        continue;
-                                    }
+                                        const int iiy = iy + dy;
+                                        const int iiz = iz + dz;
+                                        const int iix = ix + dx;
+
+                                        unsigned is_full_dblock;
+                                        if ( iiy < 0 || iiy >= vox::consts::CHUNK_Y )
+                                        {
+                                            is_full_dblock = 0U;
+                                            adj_blocks_is_full |= is_full_dblock << adji;
+                                            ++adji;
+                                            continue;
+                                        }
                                     
-                                    if ( iiz >= 0 && iiz < vox::consts::CHUNK_Z && iix >= 0 && iix < vox::consts::CHUNK_X )
-                                    {
-                                        is_full_dblock = vox::data::IsFullBlock( this->GetBlockId( iix, iiy, iiz ) );
-                                    }
-                                    else
-                                    {
-                                        static_assert(vox::consts::CHUNK_Y == vox::consts::MAP_Y);
-                                        const auto new_cv = vox::data::vector::Add( cv_,
-                                            vox::data::vector::Set( iix >> vox::consts::CHUNK_X_LOG2, 0, iiz >> vox::consts::CHUNK_Z_LOG2, 0 )
-                                        );
-                                        for ( int i = 0; i < 8; ++i )
-                                            if ( vox::data::vector::Equal( new_cv, adj_chks[i]->cv_ ) )
-                                            {
-                                                is_full_dblock = vox::data::IsFullBlock(
-                                                    adj_chks[i]->GetBlockId(
-                                                        iix & (vox::consts::CHUNK_X - 1), iiy, iiz & (vox::consts::CHUNK_Z - 1)
-                                                    ) );
-                                                break;
-                                            }
-                                    }
+                                        if ( iiz >= 0 && iiz < vox::consts::CHUNK_Z && iix >= 0 && iix < vox::consts::CHUNK_X )
+                                        {
+                                            is_full_dblock = vox::data::IsFullBlock( this->GetBlockId( iix, iiy, iiz ) );
+                                        }
+                                        else
+                                        {
+                                            static_assert(vox::consts::CHUNK_Y == vox::consts::MAP_Y);
+                                            const auto new_cv = vox::data::vector::Add( cv_,
+                                                vox::data::vector::Set( iix >> vox::consts::CHUNK_X_LOG2, 0, iiz >> vox::consts::CHUNK_Z_LOG2, 0 )
+                                            );
+                                            for ( int i = 0; i < 8; ++i )
+                                                if ( vox::data::vector::Equal( new_cv, adj_chks[i]->cv_ ) )
+                                                {
+                                                    is_full_dblock = vox::data::IsFullBlock(
+                                                        adj_chks[i]->GetBlockId(
+                                                            iix & (vox::consts::CHUNK_X - 1), iiy, iiz & (vox::consts::CHUNK_Z - 1)
+                                                        ) );
+                                                    break;
+                                                }
+                                        }
 
-                                    adj_blocks_is_full |= is_full_dblock << adji;
-                                    if ( !is_full_dblock )
+                                        adj_blocks_is_full |= is_full_dblock << adji;
+#if APPLY_GLOBAL_ILLUMINATION
+                                        {
+                                            if ( !is_full_dblock )
+                                            {
+                                                // this has a bug that cannot get adjacent chunk's light infos but im tired..
+                                                adj_blocks_rgb[adji] = *(vox::data::lightinfos::R8G8B8*)&d_lights[
+                                                    iix + 1 +
+                                                        iiy * (vox::consts::CHUNK_X + 2) * (vox::consts::CHUNK_Z + 2) +
+                                                        (iiz + 1) * (vox::consts::CHUNK_X + 2)];
+                                            }
+                                        }
+#endif
+                                        ++adji;
+                                    }  // for y z x [-1, 1]
+                        } else {
+                            unsigned adji = 18U;
+                            adj_blocks_is_full >>= 9;
+                            const int iiy = iy + 1;
+                            if ( iiy < vox::consts::CHUNK_Y )
+                                for ( int dz = 1; dz >= -1; --dz )
+                                {
+                                    const int iiz = iz + dz;
+                                    for ( int dx = -1; dx <= 1; ++dx )
                                     {
-                                        // this has a bug that cannot get adjacent chunk's light infos but im tired..
-                                        adj_blocks_rgb[adji] = *(vox::data::lightinfos::R8G8B8*)&d_lights[
-                                            iix + 1 +
-                                            iiy * (vox::consts::CHUNK_X + 2) * (vox::consts::CHUNK_Z + 2) +
-                                            (iiz + 1) * (vox::consts::CHUNK_X + 2)];
+                                        const int iix = ix + dx;
+
+                                        unsigned is_full_dblock;
+
+                                        if ( iiz >= 0 && iiz < vox::consts::CHUNK_Z && iix >= 0 && iix < vox::consts::CHUNK_X )
+                                        {
+                                            is_full_dblock = vox::data::IsFullBlock( this->GetBlockId( iix, iiy, iiz ) );
+                                        }
+                                        else
+                                        {
+                                            static_assert(vox::consts::CHUNK_Y == vox::consts::MAP_Y);
+                                            const auto new_cv = vox::data::vector::Add( cv_,
+                                                vox::data::vector::Set( iix >> vox::consts::CHUNK_X_LOG2, 0, iiz >> vox::consts::CHUNK_Z_LOG2, 0 )
+                                            );
+                                            for ( int i = 0; i < 8; ++i )
+                                                if ( vox::data::vector::Equal( new_cv, adj_chks[i]->cv_ ) )
+                                                {
+                                                    is_full_dblock = vox::data::IsFullBlock(
+                                                        adj_chks[i]->GetBlockId(
+                                                            iix & (vox::consts::CHUNK_X - 1), iiy, iiz & (vox::consts::CHUNK_Z - 1)
+                                                        ) );
+                                                    break;
+                                                }
+                                        }
+
+                                        adj_blocks_is_full |= is_full_dblock << adji;
+                                        adji++;
                                     }
-                                    ++adji;
-                                }  // for y z x [-1, 1]
+                                }
+                        }
 
                         const unsigned tp = vox::data::GetTexturePos( id );
+                        const unsigned block_rgb = vox::data::GetRGB( id );
                         const unsigned dpos = ix << 24U | iy << 8U | iz << 0U;
 
                         if ( adj_blocks_is_full >> 13 & 0x1 )
@@ -481,10 +618,6 @@ FIN_INSERT_LIGHT:;
 
                                 for ( unsigned vtx = 0U; vtx < 4U; ++vtx )
                                 {
-                                    unsigned vtx_r = adj_blocks_rgb[adj_ind].R;
-                                    unsigned vtx_g = adj_blocks_rgb[adj_ind].G;
-                                    unsigned vtx_b = adj_blocks_rgb[adj_ind].B;
-                                    unsigned vtx_cnt = 1U;
 
                                     const unsigned adjl_ind = adjl_ind_bits[side] >> (vtx << 3U) & 0xff;
                                     const unsigned adjm_ind = adjm_ind_bits[side] >> (vtx << 3U) & 0xff;
@@ -494,27 +627,40 @@ FIN_INSERT_LIGHT:;
                                     const unsigned adjm = adj_blocks_is_full >> adjm_ind & 0x1;
                                     const unsigned adjr = adj_blocks_is_full >> adjr_ind & 0x1;
 
-                                    if ( !adjl )
-                                        vtx_r += adj_blocks_rgb[adjl_ind].R,
-                                        vtx_g += adj_blocks_rgb[adjl_ind].G,
-                                        vtx_b += adj_blocks_rgb[adjl_ind].B,
-                                        ++vtx_cnt;
-                                    if ( !adjm )
-                                        vtx_r += adj_blocks_rgb[adjm_ind].R,
-                                        vtx_g += adj_blocks_rgb[adjm_ind].G,
-                                        vtx_b += adj_blocks_rgb[adjm_ind].B,
-                                        ++vtx_cnt;
-                                    if ( !adjr )
-                                        vtx_r += adj_blocks_rgb[adjr_ind].R,
-                                        vtx_g += adj_blocks_rgb[adjr_ind].G,
-                                        vtx_b += adj_blocks_rgb[adjr_ind].B,
-                                        ++vtx_cnt;
+#if APPLY_GLOBAL_ILLUMINATION
+                                    {
+                                        unsigned vtx_r = adj_blocks_rgb[adj_ind].R;
+                                        unsigned vtx_g = adj_blocks_rgb[adj_ind].G;
+                                        unsigned vtx_b = adj_blocks_rgb[adj_ind].B;
+                                        unsigned vtx_cnt = 1U;
 
-                                    vtx_r /= vtx_cnt;
-                                    vtx_g /= vtx_cnt;
-                                    vtx_b /= vtx_cnt;
+                                        if ( !adjl )
+                                            vtx_r += adj_blocks_rgb[adjl_ind].R,
+                                            vtx_g += adj_blocks_rgb[adjl_ind].G,
+                                            vtx_b += adj_blocks_rgb[adjl_ind].B,
+                                            ++vtx_cnt;
+                                        if ( !adjm )
+                                            vtx_r += adj_blocks_rgb[adjm_ind].R,
+                                            vtx_g += adj_blocks_rgb[adjm_ind].G,
+                                            vtx_b += adj_blocks_rgb[adjm_ind].B,
+                                            ++vtx_cnt;
+                                        if ( !adjr )
+                                            vtx_r += adj_blocks_rgb[adjr_ind].R,
+                                            vtx_g += adj_blocks_rgb[adjr_ind].G,
+                                            vtx_b += adj_blocks_rgb[adjr_ind].B,
+                                            ++vtx_cnt;
 
-                                    vertex_RGBs[vtx] = vtx_r << 24U | vtx_g << 16U | vtx_b << 8U;
+                                        vtx_r /= vtx_cnt;
+                                        vtx_g /= vtx_cnt;
+                                        vtx_b /= vtx_cnt;
+
+                                        vertex_RGBs[vtx] = vtx_r << 24U | vtx_g << 16U | vtx_b << 8U;
+                                    }
+#else
+                                    {
+                                        vertex_RGBs[vtx] = 0xffffff00U;
+                                    }
+#endif
 
                                     unsigned ambient_level = 0U;
                                     if ( !adjl || !adjr )
@@ -546,7 +692,8 @@ FIN_INSERT_LIGHT:;
                                     vox::ren::vertex::VertexChunk vc =
                                         vox::ren::vertex::VERTICES_BLOCK[side * 4U + ind];
                                     vc.position += dpos;
-                                    vc.texcoord += tp;
+                                    //vc.texcoord += tp;
+                                    vc.texcoord = block_rgb;
                                     vc.light = vertex_RGBs[ind] | ((vertex_ambient_level_bits >> (ind * 2U)) & 0b11U);
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::UP].push_back( &vc );
                                 }
@@ -783,7 +930,12 @@ FIN_INSERT_LIGHT:;
                                 }
                         }  // if not full block
                     }  // if not AIR
+                    else
+                    {
+                        to_gen_part = false;
+                    }
                 }  // for y z x
+            }
     }
 
     void Chunk::MapTempVertexToBuffer()

@@ -38,7 +38,7 @@ static void ResizeRenderer( long new_width, long new_height );
 
 HWND h_wnd_;
 HINSTANCE h_instance_;
-const WCHAR* window_title_ = L"Title";
+const WCHAR* window_title_ = L"SecondVox Pre v0.1";
 const WCHAR* window_class_ = L"MyClass";
 static uint64_t game_states_ = 0ULL;
 

@@ -25,4 +25,15 @@ py << 8U | px,
     {
         return Texture_Pos_[(int)block_id];
     }
+
+    unsigned int GetRGB(EBlockID block_id)
+    {
+        switch ( block_id )
+        {
+#define BL_ATR(name, is_full_block, px, py, r, g, b, ...) case EBlockID::name: return r << 24 | g << 16 | b << 8;
+            BLOCK_ATTRIB_TUPLE
+#undef BL_ATR
+        default: return 0;
+        }
+    }
 }

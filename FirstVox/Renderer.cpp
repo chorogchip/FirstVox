@@ -438,7 +438,7 @@ namespace vox::ren::base
         HRESULT hr{ S_OK };
 
         DirectX::ScratchImage image;
-        hr = DirectX::LoadFromTGAFile( image_name, DirectX::TGA_FLAGS_NONE, nullptr, image );
+        hr = DirectX::LoadFromTGAFile( image_name, DirectX::TGA_FLAGS_DEFAULT_SRGB, nullptr, image );
         DirectX::CreateShaderResourceView(
             d3d_device_, image.GetImages(), image.GetImageCount(), image.GetMetadata(),
             pp_srv
