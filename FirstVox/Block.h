@@ -11,7 +11,7 @@ namespace vox::data
     {
     public:
         EBlockID id;
-        BlockData data;
+        //BlockData data;
     };
 
 }

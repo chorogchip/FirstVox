@@ -17,7 +17,7 @@ namespace vox::data
 #define VERTEX_SPEC { sizeof( vox::ren::vertex::VertexChunk ), alignof( vox::ren::vertex::VertexChunk ) }
 
     Chunk::Chunk( vox::data::Vector4i cv ) :
-        cv_( cv ), d_id_ {}, d_data_ {},
+        cv_( cv ), d_id_ {}, /*d_data_ {},*/
         vertex_buffer_temp_ { VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC, VERTEX_SPEC },
         vertex_buffer_ {}, is_changed_( false ),
         light_infos_ {}
@@ -27,7 +27,7 @@ namespace vox::data
     {
         const int ind = GetInd( x, y, z );
         this->d_id_[ind] = block.id;
-        this->d_data_[ind] = block.data;
+        //this->d_data_[ind] = block.data;
         /*
         if ( block.id != vox::data::EBlockID::AIR )
         {
@@ -88,9 +88,9 @@ FIN_INSERT_LIGHT:;
                     unsigned short rd1 = *p++;
                     if ( rd1 == (unsigned short)-1 ) break;
                     unsigned short rd2 = *p++;
-                    unsigned short rd3 = *p++;
+                    //unsigned short rd3 = *p++;
                     this->SetBlock( (rd1 & 0xff00) >> 8, vox::consts::CHUNK_Y - 1, rd1 & 0xff,
-                        vox::data::Block( (vox::data::EBlockID)rd2, rd3 ) );
+                        vox::data::Block( (vox::data::EBlockID)rd2/*, rd3*/ ) );
                 } while ( true );
                 for ( int y = vox::consts::CHUNK_Y - 2; y >= 0; --y )
                 {
@@ -104,9 +104,9 @@ FIN_INSERT_LIGHT:;
                         unsigned short rd1 = *p++;
                         if ( rd1 == (unsigned short)-1 ) break;
                         unsigned short rd2 = *p++;
-                        unsigned short rd3 = *p++;
+                        //unsigned short rd3 = *p++;
                         this->SetBlock( (rd1 & 0xff00) >> 8, y, rd1 & 0xff,
-                                       vox::data::Block( (vox::data::EBlockID)rd2, rd3 ) );
+                                       vox::data::Block( (vox::data::EBlockID)rd2/*, rd3*/ ) );
                     } while ( true );
                 }
                 delete[] data;
@@ -115,7 +115,7 @@ FIN_INSERT_LIGHT:;
             return;
         }
 
-        memset( d_data_, 0, sizeof( d_data_ ) );
+        //memset( d_data_, 0, sizeof( d_data_ ) );
         memset( d_id_, 0, sizeof( d_id_ ) );
 
         static constexpr float multipliers_stone[3] = { 0.5f, 0.25f, 0.125f };
@@ -259,11 +259,11 @@ FIN_INSERT_LIGHT:;
             for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
             {
                 const Block block = this->GetBlock( x, vox::consts::CHUNK_Y - 1, z );
-                if ( block.id != vox::data::EBlockID::AIR || block.data != 0 )
+                if ( block.id != vox::data::EBlockID::AIR/* || block.data != 0*/ )
                 {
                     out.push_back( z | x << 8 );
                     out.push_back( (unsigned short)block.id );
-                    out.push_back( block.data );
+                    //out.push_back( block.data );
                 }
             }
         out.push_back( -1 );
@@ -274,11 +274,11 @@ FIN_INSERT_LIGHT:;
                 {
                     const Block block = this->GetBlock( x, y, z );
                     const Block block_up = this->GetBlock( x, y + 1, z );
-                    if ( block.id != block_up.id || block.data != block_up.data )
+                    if ( block.id != block_up.id/* || block.data != block_up.data*/ )
                     {
                         out.push_back( z | x << 8 );
                         out.push_back( (unsigned short)block.id );
-                        out.push_back( block.data );
+                        //out.push_back( block.data );
                     }
                 }
             out.push_back( -1 );

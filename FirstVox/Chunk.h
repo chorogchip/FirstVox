@@ -19,14 +19,12 @@ namespace vox::data
         using ChunkLight = unsigned int;
         vox::data::Vector4i cv_;
         EBlockID d_id_[vox::consts::CHUNK_Y * vox::consts::CHUNK_Z * vox::consts::CHUNK_X];
-        BlockData d_data_[vox::consts::CHUNK_Y * vox::consts::CHUNK_Z * vox::consts::CHUNK_X];
+        //BlockData d_data_[vox::consts::CHUNK_Y * vox::consts::CHUNK_Z * vox::consts::CHUNK_X];
         ResizingArray vertex_buffer_temp_[(int)vox::data::EnumSide::MAX_COUNT];
         ChunkVertexBuffer vertex_buffer_;
         std::vector<vox::data::lightinfos::LightTypesInfo> light_infos_;
         bool is_changed_;
         //unsigned char max_block_y_;
-
-        static_assert(sizeof( vox::data::Block ) == 4);
 
         int FORCE_INLINE GetInd( int x, int y, int z ) const
         {
@@ -41,20 +39,23 @@ namespace vox::data
         {
             return this->d_id_[GetInd( x, y, z )];
         }
+        /*
         FORCE_INLINE BlockData GetBlockData( int x, int y, int z ) const
         {
             return this->d_data_[GetInd( x, y, z )];
-        }
+        }*/
+        
         FORCE_INLINE vox::data::Block GetBlock( int x, int y, int z ) const
         {
             const int ind = GetInd( x, y, z );
-            return vox::data::Block( this->d_id_[ind], this->d_data_[ind] );
+            return vox::data::Block( this->d_id_[ind]/*, this->d_data_[ind]*/ );
         }
         void SetBlock( int x, int y, int z, vox::data::Block block );
+        /*
         FORCE_INLINE void SetBlockData( int x, int y, int z, BlockData data )
         {
             this->d_data_[GetInd( x, y, z )] = data;
-        }
+        }*/
         vox::data::Vector4i GetCV() const
         {
             return this->cv_;
