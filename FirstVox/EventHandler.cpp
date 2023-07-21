@@ -34,35 +34,20 @@ namespace vox::core::eventhandler {
                     const auto blk_id = vox::core::chunkmanager::GetBlock( bpv ).id;
                     if ( blk_id != vox::data::EBlockID::MAX_COUNT )
                     {
-                        vox::core::gamecore::hand_block = blk_id;
+                        vox::core::gamecore::hand_blocks[vox::core::gamecore::hand_pos] = blk_id;
                     }
                 }
             }
             break;
-        case '1':
-            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
-                ((int)vox::core::gamecore::hand_block + 1) %
-                (int)vox::data::EBlockID::MAX_COUNT
-                );
+        case '0': case '1': case '2': case '3': case '4':
+        case '5': case '6': case '7': case '8': case '9':
+            {
+                int ind = c - '1';
+                if (ind < 0) ind = 9;
+                vox::core::gamecore::hand_pos = ind;
+            }
             break;
-        case '2':
-            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
-                ((int)vox::core::gamecore::hand_block + (int)vox::data::EBlockID::MAX_COUNT - 1) %
-                (int)vox::data::EBlockID::MAX_COUNT
-                );
-            break;
-        case '3':
-            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
-                ((int)vox::core::gamecore::hand_block + 10) %
-                (int)vox::data::EBlockID::MAX_COUNT
-                );
-            break;
-        case '4':
-            vox::core::gamecore::hand_block = (vox::data::EBlockID)(
-                ((int)vox::core::gamecore::hand_block + (int)vox::data::EBlockID::MAX_COUNT - 10) %
-                (int)vox::data::EBlockID::MAX_COUNT
-                );
-            break;
+
         case VK_OEM_PLUS:
             {
                 const auto ren_dist = vox::core::chunkmanager::GetRenderChunkDist();
@@ -109,7 +94,7 @@ namespace vox::core::eventhandler {
 
     }
     void OnMouseRPressed( short x, short y ) {
-        if ( vox::core::gamecore::hand_block != vox::data::EBlockID::AIR )
+        if ( vox::core::gamecore::hand_blocks[vox::core::gamecore::hand_pos] != vox::data::EBlockID::AIR )
         {
             vox::data::Vector4i bpv;
             const auto col_side = vox::gameutils::GetRayFirstCollidingBlockPos(
@@ -126,7 +111,7 @@ namespace vox::core::eventhandler {
                 if (y >= 0 && y < vox::consts::MAP_Y)
                 {
                     vox::core::chunkmanager::SetBlock( fbpv,
-                        vox::data::Block(vox::core::gamecore::hand_block) );
+                        vox::data::Block(vox::core::gamecore::hand_blocks[vox::core::gamecore::hand_pos]) );
                 }
             }
         }
@@ -138,7 +123,12 @@ namespace vox::core::eventhandler {
 
     }
     void OnWheelScrolled( int delta ) {
-
+        delta = delta > 0 ? -1 : 1;
+        constexpr int CNT_M1 = (int)vox::data::EBlockID::MAX_COUNT - 1;
+        vox::core::gamecore::hand_blocks[vox::core::gamecore::hand_pos] = (vox::data::EBlockID)(
+            ((int)vox::core::gamecore::hand_blocks[vox::core::gamecore::hand_pos] - 1 + delta + CNT_M1)
+            % CNT_M1 + 1
+        );
     }
 
     void OnRawMouseInput( int dx, int dy )

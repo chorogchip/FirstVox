@@ -24,7 +24,7 @@ namespace vox::data
         ChunkVertexBuffer vertex_buffer_;
         std::vector<vox::data::lightinfos::LightTypesInfo> light_infos_;
         bool is_changed_;
-        unsigned char max_block_y_;
+        //unsigned char max_block_y_;
 
         static_assert(sizeof( vox::data::Block ) == 4);
 

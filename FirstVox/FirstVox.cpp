@@ -121,8 +121,9 @@ RENDER_FRAME:
             vox::data::vector::Store( sun_vec, vox::core::gamecore::GetSunVec() );
             vox::data::vector::Store( sun_vec, vox::gameutils::GetSkyColorBySunAltitude( sun_vec[1] ) );
             vox::ren::base::Clear( sun_vec );
-            vox::ren::vertex::StartRenderChunks( delta_time );
+            vox::ren::vertex::StartRenderChunks( delta_time, sun_vec );
             vox::core::chunkmanager::Render();
+            vox::ren::vertex::RenderUI();
             FilterError( vox::ren::base::Present() );
         }
     }

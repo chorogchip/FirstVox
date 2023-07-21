@@ -98,19 +98,20 @@ namespace vox::gameutils
         vox::data::vector::SetByHexColor(0x3bb0ff),
         vox::data::vector::SetByHexColor(0x3bb0ff),
         vox::data::vector::SetByHexColor(0x70d4ff),
-        vox::data::vector::SetByHexColor(0xff8400),
-        vox::data::vector::SetByHexColor(0x1c0040),
-        vox::data::vector::SetByHexColor(0x010017),
-        vox::data::vector::SetByHexColor(0x010017),
-        vox::data::vector::SetByHexColor(0x010017),
+        vox::data::vector::SetByHexColor(0x99c4e0),
+        vox::data::vector::SetByHexColor(0xff6929),
+        vox::data::vector::SetByHexColor(0x1e083b),
+        vox::data::vector::SetByHexColor(0x110e1f),
+        vox::data::vector::SetByHexColor(0x110e1f),
     };
 
     vox::data::Vector4f GetSkyColorBySunAltitude( float altitude )
     {
         const float index_f = (1.0f - altitude) * 4.0f;
         int index = (int)index_f;
+        constexpr int COLORS_CNT = sizeof(colors) / sizeof(colors[0]);
         if ( index < 0 ) index = 0;
-        else if ( index > 7 ) index = 7;
+        else if ( index > COLORS_CNT ) index = COLORS_CNT;
         const float rem = index_f - (float)index;
         return vox::data::vector::Add(
             vox::data::vector::Mul( colors[index], vox::data::vector::SetBroadcast( 1.0f - rem ) ),

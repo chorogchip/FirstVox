@@ -39,9 +39,9 @@ namespace vox::consts
     static_assert(MAP_Y % CHUNK_Y == 0);
 
     constexpr inline float CAM_SPEED = 32.0f;
-    constexpr inline int INIT_RENDER_DIST = 16;
+    constexpr inline int INIT_RENDER_DIST = 14;
     constexpr inline int INIT_LOAD_DIST = INIT_RENDER_DIST + 2;
-    constexpr static int MAX_RENDER_DIST = 16;
+    constexpr static int MAX_RENDER_DIST = 18;
 
     constexpr inline float TEX_BLOCK_WID_PIX = 256.0f;
     constexpr inline float TEX_BLOCK_HEI_PIX = 256.0f;

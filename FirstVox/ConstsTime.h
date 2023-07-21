@@ -4,7 +4,7 @@
 namespace vox::consts
 {
 
-    constexpr inline int TICKS_PER_DAY = 3600;
+    constexpr inline int TICKS_PER_DAY = 60 * 60 * 10;
     constexpr inline int DAYS_PER_YEAR = 360;
     constexpr inline float LATITUDE = PI_DIV2 * 37.0f / 90.0f;
     constexpr inline float EARTH_TILT = PI_DIV2 * 23.5f / 90.0f;

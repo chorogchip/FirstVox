@@ -27,4 +27,6 @@ namespace vox::ren::base
     HRESULT CreateTextureFromImage(
         const wchar_t* image_name, ID3D11ShaderResourceView** pp_srv
     );
+
+    void SetDepthTest(bool value);
 }

@@ -8,7 +8,8 @@
 namespace vox::core::gamecore {
 
     inline vox::core::camera::Camera camera;
-    inline vox::data::EBlockID hand_block = vox::data::EBlockID::GRASS;
+    inline int hand_pos = 0;
+    inline vox::data::EBlockID hand_blocks[10];
 
     uint32_t GetGameTicks();
     vox::data::Vector4f GetSunVec();

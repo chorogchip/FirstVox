@@ -1,19 +1,23 @@
-
+/*
 cbuffer cbChangeOnResize : register(b1)
 {
     matrix Projection;
-}
+}*/
 
-cbuffer cbChangesEveryFrame : register(b2)
+cbuffer cbChangesEveryFrameVS : register(b0)
 {
-    matrix View;
-    float4 SunLight;
-    float4 CamPos;
+    matrix ViewProj;
 }
-
+/*
 cbuffer cbChangesByChunk : register(b3)
 {
     matrix World;
+}
+*/
+cbuffer cbChangesByChunk : register(b1)
+{
+    float4 ChunkPos;
+    float4 FogValues;
 }
 
 struct VS_INPUT
@@ -25,9 +29,10 @@ struct VS_INPUT
 
 struct VS_OUTPUT
 {
-    float4 color : LIGHT_COLORS;  // RGB(GL+SUN), AO
-    float3 UV : TEXCOORD;
+    //float4 color : LIGHT_COLORS;  // RGB(GL+SUN), AO
+    float2 UV : UV;
     float fog : FOG;
+    float AO : AMBIENT;
     float4 pos : SV_POSITION;
 };
 
@@ -36,36 +41,40 @@ VS_OUTPUT VS( VS_INPUT input )
 
     VS_OUTPUT output = (VS_OUTPUT)0;
 
-    output.pos = float4(
+    float3 opos = float3(
         (float)((input.pos & 0xff000000) >> 24) - 0.5f,
         (float)((input.pos & 0x00ffff00) >> 8) - 0.5f,
-        (float)((input.pos & 0x000000ff)) - 0.5f,
-        1.0f );
+        (float)((input.pos & 0x000000ff)) - 0.5f);
 
-    uint sun_light = (input.light & 0xf0) >> 4;
+   // uint sun_light = (input.light & 0xf0) >> 4;
     uint AO = input.light & 0x3;
+    /*
     output.color = float4(
         (float)((input.light & 0xff000000) >> 24) * (1.0f / 256.0f),
         (float)((input.light & 0x00ff0000) >> 16) * (1.0f / 256.0f),
         (float)((input.light & 0x0000ff00) >> 8) * (1.0f / 256.0f),
         (float)AO * (1.0f / 4.0f) + 0.25f );
-
-        /*
+    */
+    output.AO = (float) AO * (1.0f / 4.0f) + 0.25f;
+        
     output.UV = float2(
         (float)((input.UV & 0x000000ff)) * (1.0f / 16.0f),
         (float)((input.UV & 0x0000ff00) >> 8) * (1.0f / 16.0f));
-        */
-    output.UV = float3(
+        
+    /*
+    output.color = float3(
         (float)((input.UV & 0xff000000) >> 24) * (1.0f / 256.0f),  
         (float)((input.UV & 0x00ff0000) >> 16) * (1.0f / 256.0f),  
         (float)((input.UV & 0x0000ff00) >> 8) * (1.0f / 256.0f)
-    );
+    );*/
 
-    output.fog = 0.0f;
-
-    output.pos = mul( output.pos, World );
-    output.pos = mul( output.pos, View );
-    output.pos = mul(output.pos, Projection);
+    float xinv = 32.0f - opos.x;
+    float zinv = 32.0f - opos.z;
+    float fog1 = FogValues[1] * opos.x + FogValues[0] * xinv;
+    float fog2 = FogValues[3] * opos.x + FogValues[2] * xinv;
+    output.fog = fog2 * opos.z + fog1 * zinv;
+    
+    output.pos = mul(float4(opos + ChunkPos.xyz, 1.0f), ViewProj);
 
     return output;
 

@@ -1,19 +1,21 @@
 
+
 Texture2D txDiffuse : register(t0);
 SamplerState samplerPoint : register(s0);
 
-cbuffer cbChangesEveryFrame : register(b2)
+cbuffer cbChangesEveryFramePS : register(b2)
 {
-    matrix View;
-    float4 SunLight;
-    float4 CamPos;
+    float4 skyColor;
 }
 
 struct PS_INPUT
 {
-    float4 color : LIGHT_COLORS;  // RGB(GL+SUN), AO
-    float3 UV : TEXCOORD;
+    //float4 color : LIGHT_COLORS;  // RGB(GL+SUN), AO
+    //float3 color : TEXCOORD;
+    float2 UV : UV;
     float fog : FOG;
+    float AO : AMBIENT;
+    float4 pos : SV_POSITION;
 };
 
 struct PS_OUTPUT
@@ -24,16 +26,10 @@ struct PS_OUTPUT
 PS_OUTPUT PS( PS_INPUT input ) : SV_TARGET
 {
     PS_OUTPUT output = (PS_OUTPUT)0;
-
-    float3 output_color = (float3)0;
-    //float4 sample_color = txDiffuse.Sample( samplerPoint, input.UV );
-    float4 sample_color = float4(input.UV, 1.0f);
-    float sample_alpha = sample_color.a;
-
-    output_color = sample_color.rgb * input.color.rgb * input.color.a;
-
-    output.color.xyz = pow( output_color, 2.2f );
-    output.color.a = sample_alpha;
+    float4 tex_color = txDiffuse.Sample(samplerPoint, input.UV);
+    clip(tex_color.a == 0.0f ? -1 : 1);
+    float3 output_color = tex_color.rgb * input.AO * (1.0f - input.fog) + input.fog * skyColor.xyz;
+    output.color = float4(output_color, 1.0f);
     return output;
 
     // prev phong model

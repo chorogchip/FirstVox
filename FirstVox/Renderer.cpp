@@ -22,6 +22,9 @@ namespace vox::ren::base
     static ID3D11Texture2D* depth_stencil_ = nullptr;
     static ID3D11DepthStencilView* depth_stencil_view_ = nullptr;
 
+    static ID3D11DepthStencilState *depth_stencil_state_chunk_ = nullptr;
+    static ID3D11DepthStencilState *depth_stencil_state_ui_ = nullptr;
+
     ID3D11DeviceContext* get_immediate_context()
     {
         return immediate_context_;
@@ -56,7 +59,7 @@ namespace vox::ren::base
         ZeroMemory( &sd, sizeof( sd ) );
         sd.BufferDesc.Width = width_;
         sd.BufferDesc.Height = height_;
-        sd.BufferDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+        sd.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
         sd.BufferDesc.RefreshRate.Numerator = 60;
         sd.BufferDesc.RefreshRate.Denominator = 1;
         sd.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
@@ -96,7 +99,11 @@ namespace vox::ren::base
             return hr;
         }
 
-        hr = d3d_device_->CreateRenderTargetView( pBackBuffer, NULL, &render_target_view_ );
+        D3D11_RENDER_TARGET_VIEW_DESC rtv_desc;
+        ZeroMemory(&rtv_desc, sizeof(rtv_desc));
+        rtv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        rtv_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+        hr = d3d_device_->CreateRenderTargetView( pBackBuffer, &rtv_desc, &render_target_view_ );
         pBackBuffer->Release();
         if ( FAILED( hr ) )
         {
@@ -133,6 +140,32 @@ namespace vox::ren::base
             return hr;
         }
 
+        D3D11_DEPTH_STENCIL_DESC ds_desc_chunk;
+        ZeroMemory(&ds_desc_chunk, sizeof(ds_desc_chunk));
+        ds_desc_chunk.DepthEnable = true;
+        ds_desc_chunk.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
+        ds_desc_chunk.DepthFunc = D3D11_COMPARISON_LESS;
+        ds_desc_chunk.StencilEnable = false;
+        hr = d3d_device_->CreateDepthStencilState(&ds_desc_chunk, &depth_stencil_state_chunk_);
+        if ( FAILED( hr ) )
+        {
+            return hr;
+        }
+
+        D3D11_DEPTH_STENCIL_DESC ds_desc_ui;
+        ZeroMemory(&ds_desc_ui, sizeof(ds_desc_ui));
+        ds_desc_ui.DepthEnable = false;
+        ds_desc_ui.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+        ds_desc_ui.DepthFunc = D3D11_COMPARISON_EQUAL;
+        ds_desc_ui.StencilEnable = false;
+        hr = d3d_device_->CreateDepthStencilState(&ds_desc_ui, &depth_stencil_state_ui_);
+        if ( FAILED( hr ) )
+        {
+            return hr;
+        }
+
+        immediate_context_->OMSetDepthStencilState(depth_stencil_state_chunk_, 0);
+
         immediate_context_->OMSetRenderTargets( 1, &render_target_view_, depth_stencil_view_ );
 
         D3D11_VIEWPORT vp;
@@ -164,7 +197,7 @@ namespace vox::ren::base
 
         HRESULT hr{ S_OK };
 
-        hr = swap_chain_->ResizeBuffers( 1, width_, height_, DXGI_FORMAT_R16G16B16A16_FLOAT, 0 );
+        hr = swap_chain_->ResizeBuffers( 1, width_, height_, DXGI_FORMAT_R8G8B8A8_UNORM, 0 );
         if ( FAILED( hr ) )
         {
             return hr;
@@ -177,7 +210,11 @@ namespace vox::ren::base
             return hr;
         }
 
-        hr = d3d_device_->CreateRenderTargetView( pBackBuffer, NULL, &render_target_view_ );
+        D3D11_RENDER_TARGET_VIEW_DESC rtv_desc;
+        ZeroMemory(&rtv_desc, sizeof(rtv_desc));
+        rtv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+        rtv_desc.ViewDimension = D3D11_RTV_DIMENSION_TEXTURE2D;
+        hr = d3d_device_->CreateRenderTargetView( pBackBuffer, &rtv_desc, &render_target_view_ );
         pBackBuffer->Release();
         if ( FAILED( hr ) )
         {
@@ -233,12 +270,15 @@ namespace vox::ren::base
     {
 
 #define RLS_IF(x) do { if ( x ) x->Release(); x = nullptr; } while (false)
+        RLS_IF( depth_stencil_state_chunk_ );
+        RLS_IF( depth_stencil_state_ui_ );
         RLS_IF( depth_stencil_ );
         RLS_IF( depth_stencil_view_ );
         RLS_IF( render_target_view_ );
         RLS_IF( swap_chain_ );
         RLS_IF( immediate_context_ );
         RLS_IF( d3d_device_ );
+        
 #undef RLS_IF
 
     }
@@ -457,5 +497,11 @@ namespace vox::ren::base
         return d3d_device_->GetDeviceRemovedReason();
     }
 
+
+    void SetDepthTest(bool value)
+    {
+        immediate_context_->OMSetDepthStencilState(
+            value ? depth_stencil_state_chunk_ : depth_stencil_state_ui_, 0);
+    }
 }
 

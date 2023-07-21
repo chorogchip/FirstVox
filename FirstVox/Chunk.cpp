@@ -28,12 +28,12 @@ namespace vox::data
         const int ind = GetInd( x, y, z );
         this->d_id_[ind] = block.id;
         this->d_data_[ind] = block.data;
-
+        /*
         if ( block.id != vox::data::EBlockID::AIR )
         {
             max_block_y_ = std::max( max_block_y_, (unsigned char)y );
         }
-
+        
         if ( block.id == vox::data::EBlockID::DIAMOND_ORE )
         {
             const auto lit_type = (vox::data::lightinfos::EnumLightType)(
@@ -50,7 +50,7 @@ namespace vox::data
                 { { (unsigned)x << 16U | (unsigned)z << 8U | (unsigned)y, 63 } }, lit_type } );
 
 FIN_INSERT_LIGHT:;
-        }
+        }*/
     }
 
     void Chunk::ConstructForReuse( vox::data::Vector4i cv )
@@ -218,7 +218,7 @@ FIN_INSERT_LIGHT:;
                     int hei = 5 + std::rand() % 10;
                     for (int iyy = 0; iyy < hei; ++iyy)
                     {
-                       this->SetBlock( ix, iy + iyy, iz, Block( vox::data::EBlockID::TREE_Y ) );
+                       this->SetBlock( ix, iy + iyy, iz, Block( vox::data::EBlockID::TREE ) );
                     }
                     int rad = hei/3 + std::rand() % 5;
                     for (int i1 = -rad; i1 <= rad; ++i1)
@@ -588,7 +588,7 @@ FIN_INSERT_LIGHT:;
                         }
 
                         const unsigned tp = vox::data::GetTexturePos( id );
-                        const unsigned block_rgb = vox::data::GetRGB( id );
+                        //const unsigned block_rgb = vox::data::GetRGB( id );
                         const unsigned dpos = ix << 24U | iy << 8U | iz << 0U;
 
                         if ( adj_blocks_is_full >> 13 & 0x1 )
@@ -692,8 +692,7 @@ FIN_INSERT_LIGHT:;
                                     vox::ren::vertex::VertexChunk vc =
                                         vox::ren::vertex::VERTICES_BLOCK[side * 4U + ind];
                                     vc.position += dpos;
-                                    //vc.texcoord += tp;
-                                    vc.texcoord = block_rgb;
+                                    vc.texcoord += tp;
                                     vc.light = vertex_RGBs[ind] | ((vertex_ambient_level_bits >> (ind * 2U)) & 0b11U);
                                     vertex_buffer_temp_[(int)vox::data::EnumSide::UP].push_back( &vc );
                                 }
@@ -919,10 +918,12 @@ FIN_INSERT_LIGHT:;
                         {
                             // has a bug, but there is only full block so this will be fixed later
                             // generate all side
+                            constexpr unsigned vertex_select_index = 0x230120U;
                             for ( int i = 0; i < 6; ++i )
                                 for ( int j = 0; j < 6; ++j )
                                 {
-                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i * 4 + j] };
+                                    const unsigned ind = (vertex_select_index >> j * 4U) & 0xf;
+                                    vox::ren::vertex::VertexChunk vc { vox::ren::vertex::VERTICES_BLOCK[i * 4 + ind] };
                                     vc.position += dpos;
                                     vc.texcoord += tp;
                                     vc.light |= 3;

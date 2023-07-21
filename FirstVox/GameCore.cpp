@@ -67,6 +67,8 @@ namespace vox::core::gamecore
     {
         camera.entity.SetPosition( vox::data::vector::Set( 0.0f, 40.0f, 0.0f, 0.0f ) );
         //camera.entity.SetSpeed( vox::data::vector::Set( 0.0f, 0.0f, 0.0f, 0.0f ) );
+        for (int i = 0; i < 10; ++i)
+            hand_blocks[i] = (vox::data::EBlockID)(i + 1);
     }
 
     void Update()

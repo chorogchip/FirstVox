@@ -26,6 +26,7 @@ py << 8U | px,
         return Texture_Pos_[(int)block_id];
     }
 
+    /*
     unsigned int GetRGB(EBlockID block_id)
     {
         switch ( block_id )
@@ -36,4 +37,5 @@ py << 8U | px,
         default: return 0;
         }
     }
+    */
 }
