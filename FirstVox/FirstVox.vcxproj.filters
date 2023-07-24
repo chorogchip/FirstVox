@@ -43,6 +43,12 @@
     <Filter Include="Shaders">
       <UniqueIdentifier>{c915f479-a800-45ae-a194-4452ec28123b}</UniqueIdentifier>
     </Filter>
+    <Filter Include="헤더 파일\network">
+      <UniqueIdentifier>{707627eb-842d-40d7-bf30-7b52a8fe03d4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\network">
+      <UniqueIdentifier>{ed7c29aa-3804-48f9-836a-3cb54e4a8d79}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="targetver.h">
@@ -153,6 +159,24 @@
     <ClInclude Include="LightInfos.h">
       <Filter>헤더 파일\Data</Filter>
     </ClInclude>
+    <ClInclude Include="WinSockHeader.h">
+      <Filter>헤더 파일\network</Filter>
+    </ClInclude>
+    <ClInclude Include="NetWorkManager.h">
+      <Filter>헤더 파일\network</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalPerlinField.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="LinearGenerator.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="Biones.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
+    <ClInclude Include="GlobalUniformField.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FirstVox.cpp">
@@ -218,18 +242,27 @@
     <ClCompile Include="LightInfos.cpp">
       <Filter>소스 파일\Data</Filter>
     </ClCompile>
+    <ClCompile Include="NetWorkManager.cpp">
+      <Filter>소스 파일\network</Filter>
+    </ClCompile>
+    <ClCompile Include="GlobalPerlinField.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="GlobalUniformField.cpp">
+      <Filter>소스 파일\Util</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\vs_chunk.fx">
+    <FxCompile Include="GameData\Shaders\ps_2d.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\ps_chunk.fx">
+    <FxCompile Include="GameData\Shaders\ps_chunk.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\ps_2d.fx">
+    <FxCompile Include="GameData\Shaders\vs_2d.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
-    <FxCompile Include="Shaders\vs_2d.fx">
+    <FxCompile Include="GameData\Shaders\vs_chunk.fx">
       <Filter>Shaders</Filter>
     </FxCompile>
   </ItemGroup>

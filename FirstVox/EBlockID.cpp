@@ -17,7 +17,7 @@ namespace vox::data
 
     static constexpr unsigned Texture_Pos_[] = {
 #define BL_ATR(name, is_full_block, px, py, ...)\
-py << 8U | px,
+((py << 8U) | (px & 0xf)),
     BLOCK_ATTRIB_TUPLE
 #undef BL_ATR
     };

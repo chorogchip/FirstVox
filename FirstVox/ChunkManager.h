@@ -29,7 +29,12 @@ namespace vox::core::chunkmanager
     //vox::data::Block* VEC_CALL GetModifyableBlockByBlockPos( vox::data::Vector4i block_pos );
     // return Block of id MAX_COUNT if failed
     vox::data::Block VEC_CALL GetBlock( vox::data::Vector4i block_pos );
-    void VEC_CALL SetBlock( vox::data::Vector4i block_pos, vox::data::Block block );
+    void VEC_CALL SetBlock( vox::data::Vector4i block_pos, vox::data::Block block, bool send_packet = true );
+
+    void ProcessSetBlockPacket(int x, int y, int z, data::Block block);
+    void ReplyLoadChunkPacket(int x, int y, int z);
+    void ProcessGenChunkPacket(void* chunk_node_ptr);
+    void ProcessDataChunkPacket(void* chunk_node_ptr, void* data, size_t sz);
 
 
     void RegisterDynamicChunkLoader( vox::data::Entity* p_chunk_loader, int load_distance );

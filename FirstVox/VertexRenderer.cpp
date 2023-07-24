@@ -116,14 +116,14 @@ namespace vox::ren::vertex
         constexpr UINT NUM_ELEMENTS_DESC_UI = ARRAYSIZE( VERTEX_DESC_UI );
 
         CATCH_RES( vox::ren::base::CreateShaderAndInputLayout(
-            L"Shaders/vs_chunk.fx", &chunk_vertex_shader_, &chunk_input_layout_,
+            L"GameData/Shaders/vs_chunk.fx", &chunk_vertex_shader_, &chunk_input_layout_,
             VERTEX_DESC1, NUM_ELEMENTS_DESC1,
-            L"Shaders/ps_chunk.fx", &chunk_pixel_shader_
+            L"GameData/Shaders/ps_chunk.fx", &chunk_pixel_shader_
         ) );
         CATCH_RES( vox::ren::base::CreateShaderAndInputLayout(
-            L"Shaders/vs_2d.fx", &ui_vs_, &ui_input_layout_,
+            L"GameData/Shaders/vs_2d.fx", &ui_vs_, &ui_input_layout_,
             VERTEX_DESC_UI, NUM_ELEMENTS_DESC_UI,
-            L"Shaders/ps_2d.fx", &ui_ps_
+            L"GameData/Shaders/ps_2d.fx", &ui_ps_
         ) );
         immediate_context_->IASetInputLayout( chunk_input_layout_ );
         immediate_context_->IASetPrimitiveTopology( D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST );
@@ -151,7 +151,7 @@ namespace vox::ren::vertex
         ) );
 
         CATCH_RES( vox::ren::base::CreateTextureFromImage(
-            L"Textures/block_texture_atlas.tga", &chunk_texture_rv_
+            L"GameData/Textures/block_texture_atlas.tga", &chunk_texture_rv_
         ) );
         
         mat_chunk_projection_ = DirectX::XMMatrixPerspectiveFovLH( vox::core::gamecore::camera.GetFovY(),
@@ -344,7 +344,7 @@ namespace vox::ren::vertex
             for (int j = 0; j < 6; ++j)
             {
                 const auto block_id = vox::core::gamecore::hand_blocks[i - 2];
-                const unsigned item_uv = (int)vox::data::GetTexturePos(block_id);
+                const unsigned item_uv = (unsigned)vox::data::GetTexturePos(block_id);
                 const unsigned item_u = item_uv & 0xffU;
                 const unsigned item_v = item_uv >> 8U;
                 ui_vertices_[i * 6 + j].posX = (float)(TRI2_U[j] * 64.0f) * pix_x

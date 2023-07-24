@@ -11,6 +11,9 @@
 #include "VertexRenderer.h"
 #include "VertexRenderer.h"
 #include "GameCore.h"
+#include "GlobalPerlinField.h"
+#include "GlobalUniformField.h"
+#include "Biones.h"
 
 namespace vox::data
 {
@@ -62,6 +65,46 @@ FIN_INSERT_LIGHT:;
         }
         light_infos_.clear();
         is_changed_ = false;
+    }
+
+    void Chunk::LoadFromData(void* data, size_t size)
+    {
+        unsigned version = *(unsigned *)data;
+        data = (unsigned *)data + 1;
+        if ( version <= 0xff'ff'ff'ff )
+        {
+            static_assert( sizeof( EBlockID ) == sizeof ( unsigned short ));
+
+            int sz = *(int *)data;
+            data = (int *)data + 1;
+            const unsigned short *p = (unsigned short *)data;
+            do
+            {
+                unsigned short rd1 = *p++;
+                if ( rd1 == (unsigned short)-1 ) break;
+                unsigned short rd2 = *p++;
+                //unsigned short rd3 = *p++;
+                this->SetBlock( (rd1 & 0xff00) >> 8, vox::consts::CHUNK_Y - 1, rd1 & 0xff,
+                    vox::data::Block( (vox::data::EBlockID)rd2/*, rd3*/ ) );
+            } while ( true );
+            for ( int y = vox::consts::CHUNK_Y - 2; y >= 0; --y )
+            {
+                for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
+                    for (int x = 0; x < vox::consts::CHUNK_X; ++x)
+                    {
+                        this->SetBlock( x, y, z, this->GetBlock( x, y + 1, z ) );
+                    }
+                do
+                {
+                    unsigned short rd1 = *p++;
+                    if ( rd1 == (unsigned short)-1 ) break;
+                    unsigned short rd2 = *p++;
+                    //unsigned short rd3 = *p++;
+                    this->SetBlock( (rd1 & 0xff00) >> 8, y, rd1 & 0xff,
+                        vox::data::Block( (vox::data::EBlockID)rd2/*, rd3*/ ) );
+                } while ( true );
+            }
+        }
     }
 
     void Chunk::Load()
@@ -117,37 +160,42 @@ FIN_INSERT_LIGHT:;
 
         //memset( d_data_, 0, sizeof( d_data_ ) );
         memset( d_id_, 0, sizeof( d_id_ ) );
+        /*
+        static constexpr float multipliers_blk_type[5] = { 0.0f, 0.0f, 0.125f, 0.25f, 0.5f };
+        vox::rand::perlin::PerlinGeneratorUnit perlin_blk_type{
+            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_blk_type) / sizeof(float), multipliers_blk_type,
+        };*/
 
-        static constexpr float multipliers_stone[3] = { 0.5f, 0.25f, 0.125f };
-        vox::rand::perlin::PerlinGeneratorUnit perlin_stone{
-            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_stone) / sizeof(float), multipliers_stone
-        };
-        static constexpr float multipliers_dirt[3] = { 0.375f, 0.25f, 0.125f };
-        vox::rand::perlin::PerlinGeneratorUnit perlin_dirt{
-            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_dirt) / sizeof(float), multipliers_dirt,
+        static constexpr float multipliers_height[3] = { 0.375f/2.0f, 0.25f/2.0f, 0.125/2.0f };
+        vox::rand::perlin::PerlinGeneratorUnit perlin_height{
+            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_height) / sizeof(float), multipliers_height,
             0x12345678
-        };
+        };/*
         static constexpr float multipliers_grass[3] = { 0.375f, 0.25f, 0.125f };
         vox::rand::perlin::PerlinGeneratorUnit perlin_grass{
-            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_dirt) / sizeof(float), multipliers_dirt,
+            this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_grass) / sizeof(float), multipliers_grass,
                 0x12345678
         };
-
+        */
         float cxr = 1.0f / (float)vox::consts::CHUNK_X;
         float czr = 1.0f / (float)vox::consts::CHUNK_Z;
+        
+        const int cpx = data::vector::GetX(cv_) * consts::CHUNK_X;
+        const int cpz = data::vector::GetZ(cv_) * consts::CHUNK_Z;
 
         for (int  iz = 0; iz < vox::consts::CHUNK_Z; ++iz)
             for ( int ix = 0; ix < vox::consts::CHUNK_X; ++ix )
             {
-                const float sample_stone = perlin_stone.Sample(
+                /*
+                const float sample_blk_type = perlin_blk_type.Sample(
                     (float)ix * cxr, (float)iz * czr
-                );
-                const float sample_dirt = perlin_dirt.Sample(
+                );*/
+                const float sample_height = perlin_height.Sample(
                     (float)ix * cxr, (float)iz * czr
-                );
-                const float sample_grass = perlin_dirt.Sample(
+                );/*
+                const float sample_grass = perlin_grass.Sample(
                     (float)ix * cxr, (float)iz * czr
-                );
+                );*/
 #if 0
                 const int rand_height_stone = 20 + (int)((float)vox::consts::MAP_Y * sample_stone * 0.4f);
                 const int height_stone = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_stone ) );
@@ -193,7 +241,7 @@ FIN_INSERT_LIGHT:;
                 {
                     this->SetBlock( ix, iy, iz, Block( vox::data::EBlockID::STONE ) );
                 }
-#elif 1
+#elif 0
 
                 const int rand_height_stone = 20 + (int)((float)vox::consts::MAP_Y * sample_stone * 0.4f);
                 const int height_stone = std::max( 1, std::min( vox::consts::MAP_Y, rand_height_stone ) );
@@ -229,6 +277,51 @@ FIN_INSERT_LIGHT:;
                 }
 
 
+#elif 1
+                static rand::GlobalPerlinField gpf_height(123456789U, 1024, 1.0f);
+                static rand::GlobalPerlinField gpf_temperature(987654321U, 1024, 1.0f);
+
+                static rand::GlobalUniformField guf_blk_type{13243546U};
+                static rand::GlobalPerlinField gpf_world_height1(23456781U, 256, 1.0f);
+                static rand::GlobalPerlinField gpf_world_height2(34567812U, 128, 0.75f);
+                static rand::GlobalPerlinField gpf_world_height3(45678123U,  64, 0.5f);
+
+                float biome_weights[6];
+                wrd::GetBiomeFraction(biome_weights,
+                    gpf_height.Sample(cpx + ix, cpz + iz),
+                    gpf_temperature.Sample(cpx + ix, cpz + iz));
+                
+                const float acc = guf_blk_type.Sample(cpx + ix, cpz + iz);
+                float sum = 0.0f;
+                int blk_id = 0;
+                for (; blk_id < 6; ++blk_id)
+                {
+                    sum += biome_weights[blk_id];
+                    if (sum >= acc) break;
+                }
+                data::EBlockID blk;
+                switch(blk_id)
+                {
+                case 0: blk = data::EBlockID::SAND; break;
+                case 1: blk = data::EBlockID::RED_SAND; break;
+                case 2: blk = data::EBlockID::GRASS; break;
+                case 3: blk = data::EBlockID::COBBLESTONE; break;
+                case 4: blk = data::EBlockID::SNOW; break;
+                case 5: case 6: blk = data::EBlockID::DIRT; break;
+                }
+
+                float real_sample_height = sample_height
+                    + gpf_world_height1.Sample( cpx + ix, cpz + iz )
+                    + gpf_world_height2.Sample( cpx + ix, cpz + iz )
+                    + gpf_world_height3.Sample( cpx + ix, cpz + iz );
+
+                int map_height = (int)wrd::ConvertHeight(real_sample_height, biome_weights);
+                if (map_height >= consts::MAP_Y) map_height = consts::MAP_Y - 1;
+                if (map_height < 0) map_height = 0;
+                for (int iy = 0; iy <= map_height; ++iy )
+                {
+                    this->SetBlock( ix, iy, iz, Block( blk ) );
+                }
 #endif
 
             }
@@ -287,6 +380,58 @@ FIN_INSERT_LIGHT:;
         fwrite( &sz, sizeof( sz ), 1, fp );
         fwrite( &out[0], sizeof( unsigned short ), out.size(), fp );
         fclose( fp );
+    }
+
+
+    size_t Chunk::GetStoringData(unsigned char** pp_data, size_t offset) const
+    {
+        std::vector<unsigned short> out;
+        for (int i = 0; i < 4; ++i)
+            out.push_back(0);
+        *(unsigned *)&out[2] = vox::consts::GAME_VERSION;
+
+        for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
+            for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
+            {
+                const Block block = this->GetBlock( x, vox::consts::CHUNK_Y - 1, z );
+                if ( block.id != vox::data::EBlockID::AIR/* || block.data != 0*/ )
+                {
+                    out.push_back( z | x << 8 );
+                    out.push_back( (unsigned short)block.id );
+                    //out.push_back( block.data );
+                }
+            }
+        out.push_back( -1 );
+        for ( int y = vox::consts::CHUNK_Y - 2; y >= 0; --y )
+        {
+            for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
+                for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
+                {
+                    const Block block = this->GetBlock( x, y, z );
+                    const Block block_up = this->GetBlock( x, y + 1, z );
+                    if ( block.id != block_up.id/* || block.data != block_up.data*/ )
+                    {
+                        out.push_back( z | x << 8 );
+                        out.push_back( (unsigned short)block.id );
+                        //out.push_back( block.data );
+                    }
+                }
+            out.push_back( -1 );
+        }
+        *(int *)&out[0] = (int)out.size() - 4;
+        size_t sz = out.size() * sizeof(unsigned short);
+        *pp_data = new unsigned char[sz];
+        memcpy(*pp_data, &out[0], sz);
+        return sz;
+    }
+
+    FILE* Chunk::GetFP(int x, int y, int z, const char* mode)
+    {
+        char file_name[256];
+        sprintf_s( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d.chnk", x, y, z);
+        FILE *fp;
+        fopen_s( &fp, file_name, mode );
+        return fp;
     }
 
     constexpr static bool APPLY_GLOBAL_ILLUMINATION = false;

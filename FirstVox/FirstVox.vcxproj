@@ -170,13 +170,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="Biones.h" />
     <ClInclude Include="Block.h" />
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ChunkManager.h" />
     <ClInclude Include="ChunkVertexBuffer.h" />
     <ClInclude Include="FirstVoxHeader.h" />
+    <ClInclude Include="GlobalPerlinField.h" />
+    <ClInclude Include="GlobalUniformField.h" />
     <ClInclude Include="LightInfos.h" />
+    <ClInclude Include="LinearGenerator.h" />
     <ClInclude Include="Marker.h" />
+    <ClInclude Include="NetWorkManager.h" />
     <ClInclude Include="ResizingArray.h" />
     <ClInclude Include="Consts.h" />
     <ClInclude Include="ConstsTime.h" />
@@ -206,13 +211,17 @@
     <ClInclude Include="Vector.h" />
     <ClInclude Include="VertexRenderer.h" />
     <ClInclude Include="VertexRenderer_for_Winmain.h" />
+    <ClInclude Include="WinSockHeader.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Camera.cpp" />
     <ClCompile Include="ChunkManager.cpp" />
     <ClCompile Include="ChunkVertexBuffer.cpp" />
     <ClCompile Include="Entity.cpp" />
+    <ClCompile Include="GlobalPerlinField.cpp" />
+    <ClCompile Include="GlobalUniformField.cpp" />
     <ClCompile Include="LightInfos.cpp" />
+    <ClCompile Include="NetWorkManager.cpp" />
     <ClCompile Include="ResizingArray.cpp" />
     <ClCompile Include="EBlockID.cpp" />
     <ClCompile Include="EventHandler.cpp" />
@@ -231,37 +240,21 @@
     <ClCompile Include="VertexRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="Shaders\ps_2d.fx">
+    <FxCompile Include="GameData\Shaders\ps_2d.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="Shaders\ps_chunk.fx">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">PS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">PS</EntryPointName>
-      <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</DisableOptimizations>
-      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Pixel</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
-    </FxCompile>
-    <FxCompile Include="Shaders\vs_2d.fx">
+    <FxCompile Include="GameData\Shaders\ps_chunk.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
-    <FxCompile Include="Shaders\vs_chunk.fx">
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">VS</EntryPointName>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">4.0</ShaderModel>
+    <FxCompile Include="GameData\Shaders\vs_2d.fx">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <DisableOptimizations Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</DisableOptimizations>
-      <EntryPointName Condition="'$(Configuration)|$(Platform)'=='Release|x64'">VS</EntryPointName>
-      <EnableDebuggingInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</EnableDebuggingInformation>
-      <ShaderType Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Vertex</ShaderType>
-      <ShaderModel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">4.0</ShaderModel>
+    </FxCompile>
+    <FxCompile Include="GameData\Shaders\vs_chunk.fx">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

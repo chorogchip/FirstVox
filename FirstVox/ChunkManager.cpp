@@ -14,6 +14,7 @@
 #include "Chunk.h"
 #include "GameCore.h"
 #include "VertexRenderer.h"
+#include "NetWorkManager.h"
 
 namespace vox::core::chunkmanager
 {
@@ -68,9 +69,12 @@ namespace vox::core::chunkmanager
 
     static std::thread chunk_load_thread_;
     static volatile bool exit_chunk_load_thread = false;
-    vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_load_job_queue_;
-    vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_clear_job_queue_;
-    vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_vertex_job_queue_;
+    static vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_load_job_queue_;
+    static vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_clear_job_queue_;
+    static vox::data::QueueFor1WorkerThread<ChunkNode*, 256> chunk_vertex_job_queue_;
+    static vox::data::QueueFor1WorkerThread<std::tuple<int,int,int,data::Block>, 256> packet_setblock_queue_;
+    static vox::data::QueueFor1WorkerThread<std::tuple<int,int,int>, 256> packet_load_chunk_queue_;
+    static vox::data::QueueFor1WorkerThread<std::tuple<int,int,int, ChunkNode*>, 256> packet_load_chunk_job_queue_;
 
     struct ChunkNodeRenderInfo
     {
@@ -141,6 +145,85 @@ namespace vox::core::chunkmanager
         return cur;
     }
 
+
+    void ProcessSetBlockPacket(int x, int y, int z, data::Block block)
+    {
+        if (packet_setblock_queue_.IsFull())
+            assert(0);
+        packet_setblock_queue_.Push(std::make_tuple(x, y, z, block));
+    }
+    void ReplyLoadChunkPacket(int x, int y, int z)
+    {
+        if (packet_load_chunk_queue_.IsFull())
+            assert(0);
+        packet_load_chunk_queue_.Push(std::make_tuple(x, y, z));
+    }
+
+    static void ProcessLoadChunkPacket(int x, int y, int z, ChunkNode* cn)
+    {
+        net::DefPacket ret_packet;
+        memset(&ret_packet, 0, sizeof(ret_packet));
+        ret_packet.x = x;
+        ret_packet.y = y;
+        ret_packet.z = z;
+
+        if (cn == nullptr)
+        {
+            FILE* fp = data::Chunk::GetFP(x, y, z, "rb");
+            if (fp == nullptr)
+            {
+                goto GEN_CHUNK;
+            }
+            else
+            {
+                // frem storage
+                fseek(fp, 0L, SEEK_END);
+                size_t sz = ftell(fp);
+                fseek(fp, 0L, SEEK_SET);
+                unsigned char *data = new unsigned char[sz + sizeof(ret_packet)];
+                ret_packet.flag = net::EnumPacketFlag::DATA_CHUNK;
+                ret_packet.data = (void*)(sz + sizeof(ret_packet));
+                memcpy(data, &ret_packet, sizeof(ret_packet));
+                fread(data + sizeof(ret_packet), 1, sz, fp);
+                fclose(fp);
+                net::NMSendDefPacket((net::DefPacket*)data);
+                delete[] data;
+            }
+        }
+        else if (cn->chunk.IsChanged())
+        {
+            // from ram
+            unsigned char* data;
+            size_t sz = cn->chunk.GetStoringData(&data, sizeof(ret_packet));
+            ret_packet.flag = net::EnumPacketFlag::DATA_CHUNK;
+            ret_packet.data = (void*)(sz);
+            memcpy(data, &ret_packet, sizeof(ret_packet));
+            net::NMSendDefPacket((net::DefPacket*)data);
+            delete[] data;
+        }
+        else
+        {
+            goto GEN_CHUNK;
+        }
+
+GEN_CHUNK:
+        ret_packet.flag = net::EnumPacketFlag::GEN_CHUNK;
+        net::NMSendDefPacket(&ret_packet);
+        return;
+    }
+    void ProcessGenChunkPacket(void* chunk_node_ptr)
+    {
+        ChunkNode* p_chunk_node = (ChunkNode*)chunk_node_ptr;
+        p_chunk_node->chunk.Load();
+        p_chunk_node->state = EnumChunkStates::LOAD_FINISHED;
+    }
+    void ProcessDataChunkPacket(void* chunk_node_ptr, void* data, size_t sz)
+    {
+        ChunkNode* p_chunk_node = (ChunkNode*)chunk_node_ptr;
+        p_chunk_node->chunk.LoadFromData(data, sz);
+        p_chunk_node->state = EnumChunkStates::LOAD_FINISHED;
+    }
+
     static void VEC_CALL LoadChunksByChunkLoader( vox::data::Vector4i chunk_num, int load_dist )
     {
         const auto game_tick = vox::core::gamecore::GetGameTicks();
@@ -167,14 +250,27 @@ namespace vox::core::chunkmanager
                             *ch = new ChunkNode( cv );
                         }
 
-                        if ( chunk_load_job_queue_.IsFull() )
+                        if (!net::NMIsClient())
                         {
-                            (*ch)->chunk.Load();
-                            (*ch)->state = EnumChunkStates::LOAD_FINISHED;
+                            if ( chunk_load_job_queue_.IsFull() )
+                            {
+                                (*ch)->chunk.Load();
+                                (*ch)->state = EnumChunkStates::LOAD_FINISHED;
+                            }
+                            else
+                            {
+                                chunk_load_job_queue_.Push( *ch );
+                            }
                         }
                         else
                         {
-                            chunk_load_job_queue_.Push( *ch );
+                            net::DefPacket def_packet;
+                            def_packet.flag = net::EnumPacketFlag::LOAD_CHUNK;
+                            def_packet.x = vox::data::vector::GetX( cv ); 
+                            def_packet.y = vox::data::vector::GetY( cv ); 
+                            def_packet.z = vox::data::vector::GetZ( cv ); 
+                            def_packet.data = *ch;
+                            net::NMSendDefPacket(&def_packet);
                         }
                     }
                     (*ch)->last_updated_gametick = game_tick;
@@ -241,14 +337,15 @@ namespace vox::core::chunkmanager
 
     static void ChunkLoadThreadLoop()
     {
-        unsigned char* light_bfs_arr = (unsigned char*)malloc( sizeof( unsigned char ) * vox::consts::CHUNK_BLOCKS_CNT * 12 );
-        unsigned* d_lights = (unsigned*)malloc( sizeof( unsigned ) * (vox::consts::CHUNK_X + 2) * vox::consts::CHUNK_Y * (vox::consts::CHUNK_Z + 2) );
+        //unsigned char* light_bfs_arr = (unsigned char*)malloc( sizeof( unsigned char ) * vox::consts::CHUNK_BLOCKS_CNT * 12 );
+        //unsigned* d_lights = (unsigned*)malloc( sizeof( unsigned ) * (vox::consts::CHUNK_X + 2) * vox::consts::CHUNK_Y * (vox::consts::CHUNK_Z + 2) );
 
         while ( true )
         {
             if ( chunk_load_job_queue_.IsEmpty() &&
                 chunk_clear_job_queue_.IsEmpty() &&
-                chunk_vertex_job_queue_.IsEmpty() )
+                chunk_vertex_job_queue_.IsEmpty() &&
+                packet_load_chunk_job_queue_.IsEmpty() )
             {
                 if ( exit_chunk_load_thread ) return;
 
@@ -312,11 +409,18 @@ PASS_THIS_CHUNK:;
                         delete p_chunk_node;
                 }
 
+                const int sz_ldnet = (int)packet_load_chunk_job_queue_.Size();
+                for (int i = 0; i < sz_ldnet; ++i)
+                {
+                    auto [x, y, z, cn] = packet_load_chunk_job_queue_.Pop();
+                    ProcessLoadChunkPacket(x, y, z, cn);
+                }
+
             }
         }
 
-        free( d_lights );
-        free( light_bfs_arr );
+        //free( d_lights );
+        //free( light_bfs_arr );
     }
 
     int GetRenderChunkDist()
@@ -419,6 +523,20 @@ PASS_THIS_CHUNK:;
                 }
         game_chunkloaders_static_remove_.clear();
 
+        for (int i = 0, sz = (int)packet_setblock_queue_.Size(); i < sz; ++i )
+        {
+            auto [x, y, z, blk] = packet_setblock_queue_.Pop();
+            SetBlock( data::vector::Set(x, y, z, 0), blk, false );
+        }
+
+        for (int i = 0, sz = (int)packet_load_chunk_queue_.Size(); i < sz; ++i)
+        {
+            if (packet_load_chunk_job_queue_.IsFull())
+                assert(0);
+            auto [x, y, z] = packet_load_chunk_queue_.Pop();
+            ChunkNode* cn = GetChunkNodeByChunkNum(vox::data::vector::Set(x, y, z, 0));
+            packet_load_chunk_job_queue_.Push(std::make_tuple(x, y, z, cn));
+        }
 
         // size can be incremented during loop, need to modify when introduced multithread
         int dyn_i = 0, stt_i = 0;
@@ -608,7 +726,7 @@ DONT_RENDER_THIS_CHUNK:;
         }
     }
 
-    void VEC_CALL SetBlock(vox::data::Vector4i block_pos, vox::data::Block block)
+    void VEC_CALL SetBlock(vox::data::Vector4i block_pos, vox::data::Block block, bool send_packet )
     {
         const auto cv = GetChunkNumByBlockPos( block_pos );
         ChunkNode* const ch = GetChunkNodeByChunkNum( cv );
@@ -633,6 +751,17 @@ DONT_RENDER_THIS_CHUNK:;
             }
             ch->chunk.SetBlock( bp[0], bp[1], bp[2], block );
             ch->chunk.Touch();
+
+            if (send_packet)
+            {
+                net::DefPacket def_packet;
+                def_packet.flag = net::EnumPacketFlag::SET_BLOCK;
+                def_packet.x = vox::data::vector::GetX( block_pos ); 
+                def_packet.y = vox::data::vector::GetY( block_pos ); 
+                def_packet.z = vox::data::vector::GetZ( block_pos );
+                def_packet.data = (void*)(size_t)block.id;
+                net::NMSendDefPacket(&def_packet);
+            }
         }
     }
 

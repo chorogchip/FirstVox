@@ -62,6 +62,7 @@ namespace vox::data
         }
 
         void Load();
+        void LoadFromData(void* data, size_t size);
         // adj_chks[8] must be this
         void GenerateVertex( Chunk* adj_chks[9],
             unsigned char light_bfs_arr[vox::consts::CHUNK_BLOCKS_CNT * 12],
@@ -70,5 +71,8 @@ namespace vox::data
         void Render( vox::data::EnumBitSide6 sides );
         void Clear( bool to_retrieve_buffer );
         void Touch();
+        bool IsChanged() const { return is_changed_; }
+        size_t GetStoringData(unsigned char** pp_data, size_t offset) const;
+        static FILE* GetFP(int x, int y, int z, const char* mode);
     };
 }

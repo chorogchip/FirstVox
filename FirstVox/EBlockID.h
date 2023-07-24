@@ -4,7 +4,7 @@
 namespace vox::data {
 
 #define BLOCK_ATTRIB_TUPLE \
-/*          name, is_full_block, texture_pos_x,y*/\
+/*          name, is_full_block, texture_pos_xy,y*/\
 BL_ATR(AIR,             false,  0, 0)\
 BL_ATR(GRASS,            true,  1, 0)\
 BL_ATR(DIRT,             true,  2, 0)\

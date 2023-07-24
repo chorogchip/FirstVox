@@ -27,6 +27,7 @@
 #include "GameCore.h"
 #include "EventHandler.h"
 #include "ChunkManager.h"
+#include "NetWorkManager.h"
 
 
 static ATOM                MyRegisterClass( HINSTANCE hInstance );
@@ -76,6 +77,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 
     FilterError( vox::ren::base::Init( h_wnd_ ) );
     FilterError( vox::ren::vertex::Init( h_wnd_ ) );
+    if (vox::net::NMInit()) OutputDebugStringA("error init network\n");
     vox::core::gamecore::camera.SetAspectRatio( (float)vox::ren::base::GetScreenWidth() / (float)vox::ren::base::GetScreenHeight() );
     vox::core::gamecore::Init();
     vox::core::chunkmanager::Init();
@@ -129,6 +131,7 @@ RENDER_FRAME:
     }
     vox::core::chunkmanager::Clean();
     vox::core::gamecore::Clean();
+    vox::net::NMClear();
     vox::ren::vertex::Clean();
     vox::ren::base::Clean();
 

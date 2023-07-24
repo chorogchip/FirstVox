@@ -458,9 +458,9 @@ namespace vox::ren::base
         D3D11_SAMPLER_DESC sample_desc;
         ZeroMemory( &sample_desc, sizeof( sample_desc ) );
         sample_desc.Filter = D3D11_FILTER_MIN_MAG_MIP_POINT;
-        sample_desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
-        sample_desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
-        sample_desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        sample_desc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+        sample_desc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+        sample_desc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
         sample_desc.ComparisonFunc = D3D11_COMPARISON_NEVER;
         sample_desc.MinLOD = 0;
         sample_desc.MaxLOD = D3D11_FLOAT32_MAX;

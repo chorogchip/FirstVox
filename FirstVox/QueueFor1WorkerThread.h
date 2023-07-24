@@ -6,17 +6,24 @@ namespace vox::data
     template<typename Elem, unsigned size>
     class QueueFor1WorkerThread {
     private:
-        volatile Elem data[size];
+        Elem data[size];
         volatile unsigned front;
         volatile unsigned back;
     public:
-        QueueFor1WorkerThread() = default;
+        QueueFor1WorkerThread();
         void Push(Elem elem);
         Elem Pop();
         bool IsEmpty();
         bool IsFull();
         unsigned Size();
     };
+
+
+    template<typename Elem, unsigned size>
+    QueueFor1WorkerThread<Elem, size>::QueueFor1WorkerThread()
+    {
+        front = back = 0;
+    }
 
 
     template<typename Elem, unsigned size>

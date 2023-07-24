@@ -58,8 +58,8 @@ VS_OUTPUT VS( VS_INPUT input )
     output.AO = (float) AO * (1.0f / 4.0f) + 0.25f;
         
     output.UV = float2(
-        (float)((input.UV & 0x000000ff)) * (1.0f / 16.0f),
-        (float)((input.UV & 0x0000ff00) >> 8) * (1.0f / 16.0f));
+        ((float) (input.UV & 0x000000ff)) * (16.0f / 256.0f),
+        ((float) (input.UV >> 8) * (16.0f / 256.0f)));
         
     /*
     output.color = float3(
