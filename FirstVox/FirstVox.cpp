@@ -79,8 +79,8 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
     FilterError( vox::ren::vertex::Init( h_wnd_ ) );
     if (vox::net::NMInit()) OutputDebugStringA("error init network\n");
     vox::core::gamecore::camera.SetAspectRatio( (float)vox::ren::base::GetScreenWidth() / (float)vox::ren::base::GetScreenHeight() );
-    vox::core::gamecore::Init();
     vox::core::chunkmanager::Init();
+    vox::core::gamecore::Init();
 
     HACCEL hAccelTable = LoadAccelerators( hInstance, MAKEINTRESOURCE( IDC_FIRSTVOX ) );
     MSG msg{};
@@ -129,8 +129,8 @@ RENDER_FRAME:
             FilterError( vox::ren::base::Present() );
         }
     }
-    vox::core::chunkmanager::Clean();
     vox::core::gamecore::Clean();
+    vox::core::chunkmanager::Clean();
     vox::net::NMClear();
     vox::ren::vertex::Clean();
     vox::ren::base::Clean();

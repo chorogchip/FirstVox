@@ -164,13 +164,13 @@ FIN_INSERT_LIGHT:;
         static constexpr float multipliers_blk_type[5] = { 0.0f, 0.0f, 0.125f, 0.25f, 0.5f };
         vox::rand::perlin::PerlinGeneratorUnit perlin_blk_type{
             this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_blk_type) / sizeof(float), multipliers_blk_type,
-        };*/
+        };
 
         static constexpr float multipliers_height[3] = { 0.375f/2.0f, 0.25f/2.0f, 0.125/2.0f };
         vox::rand::perlin::PerlinGeneratorUnit perlin_height{
             this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_height) / sizeof(float), multipliers_height,
             0x12345678
-        };/*
+        };
         static constexpr float multipliers_grass[3] = { 0.375f, 0.25f, 0.125f };
         vox::rand::perlin::PerlinGeneratorUnit perlin_grass{
             this->cv_.m128i_i32[0], this->cv_.m128i_i32[2], sizeof(multipliers_grass) / sizeof(float), multipliers_grass,
@@ -183,16 +183,31 @@ FIN_INSERT_LIGHT:;
         const int cpx = data::vector::GetX(cv_) * consts::CHUNK_X;
         const int cpz = data::vector::GetZ(cv_) * consts::CHUNK_Z;
 
+
+        static rand::GlobalPerlinField gpf_height(123456789U, 1024, 1.0f);
+        static rand::GlobalPerlinField gpf_temperature(987654321U, 1024, 1.0f);
+
+        static rand::GlobalUniformField guf_blk_type{13243546U};
+        static rand::GlobalUniformField guf_object{928374652U};
+
+        static rand::GlobalPerlinField gpf_world_height1(23456781U, 256, 1.0f);
+        static rand::GlobalPerlinField gpf_world_height2(34567812U, 128, 0.75f);
+        static rand::GlobalPerlinField gpf_world_height3(45678123U,  64, 0.5f);
+        static rand::GlobalPerlinField gpf_world_height4(56781234U,  32, 0.125f);
+        static rand::GlobalPerlinField gpf_world_height5(67812345U,  16, 0.0625f);
+        static rand::GlobalPerlinField gpf_world_height6(78123456U,   8, 0.03125f);
+        static rand::GlobalPerlinField gpf_cover_block(15263748U, 32, 1.0f);
+
         for (int  iz = 0; iz < vox::consts::CHUNK_Z; ++iz)
             for ( int ix = 0; ix < vox::consts::CHUNK_X; ++ix )
             {
                 /*
                 const float sample_blk_type = perlin_blk_type.Sample(
                     (float)ix * cxr, (float)iz * czr
-                );*/
+                );
                 const float sample_height = perlin_height.Sample(
                     (float)ix * cxr, (float)iz * czr
-                );/*
+                );
                 const float sample_grass = perlin_grass.Sample(
                     (float)ix * cxr, (float)iz * czr
                 );*/
@@ -278,13 +293,6 @@ FIN_INSERT_LIGHT:;
 
 
 #elif 1
-                static rand::GlobalPerlinField gpf_height(123456789U, 1024, 1.0f);
-                static rand::GlobalPerlinField gpf_temperature(987654321U, 1024, 1.0f);
-
-                static rand::GlobalUniformField guf_blk_type{13243546U};
-                static rand::GlobalPerlinField gpf_world_height1(23456781U, 256, 1.0f);
-                static rand::GlobalPerlinField gpf_world_height2(34567812U, 128, 0.75f);
-                static rand::GlobalPerlinField gpf_world_height3(45678123U,  64, 0.5f);
 
                 float biome_weights[6];
                 wrd::GetBiomeFraction(biome_weights,
@@ -300,31 +308,273 @@ FIN_INSERT_LIGHT:;
                     if (sum >= acc) break;
                 }
                 data::EBlockID blk;
+                data::EBlockID cover_blk;
+                float cover_threshold;
                 switch(blk_id)
                 {
-                case 0: blk = data::EBlockID::SAND; break;
-                case 1: blk = data::EBlockID::RED_SAND; break;
-                case 2: blk = data::EBlockID::GRASS; break;
-                case 3: blk = data::EBlockID::COBBLESTONE; break;
-                case 4: blk = data::EBlockID::SNOW; break;
-                case 5: case 6: blk = data::EBlockID::DIRT; break;
+                case 0:
+                    blk = data::EBlockID::SAND;
+                    cover_blk = data::EBlockID::SAND;
+                    cover_threshold = -1.0f;
+                    break;
+                case 1:
+                    blk = data::EBlockID::RED_SAND;
+                    cover_blk = data::EBlockID::DIRT;
+                    cover_threshold = 0.4f;
+                    break;
+                case 2:
+                    blk = data::EBlockID::DIRT;
+                    cover_blk = data::EBlockID::GRASS;
+                    cover_threshold = -0.2f;
+                    break;
+                case 3:
+                    blk = data::EBlockID::COBBLESTONE;
+                    cover_blk = data::EBlockID::DIRT;
+                    cover_threshold = 0.1f;
+                    break;
+                case 4:
+                    blk = data::EBlockID::DIRT;
+                    cover_blk = data::EBlockID::SNOW;
+                    cover_threshold = -0.4f;
+                    break;
+                case 5: case 6:
+                    blk = data::EBlockID::COBBLESTONE;
+                    cover_blk = data::EBlockID::SNOW;
+                    cover_threshold = -0.1f;
+                    break;
                 }
 
-                float real_sample_height = sample_height
-                    + gpf_world_height1.Sample( cpx + ix, cpz + iz )
+                float real_sample_height =
+                      gpf_world_height1.Sample( cpx + ix, cpz + iz )
                     + gpf_world_height2.Sample( cpx + ix, cpz + iz )
-                    + gpf_world_height3.Sample( cpx + ix, cpz + iz );
+                    + gpf_world_height3.Sample( cpx + ix, cpz + iz )
+                    + gpf_world_height4.Sample( cpx + ix, cpz + iz )
+                    + gpf_world_height5.Sample( cpx + ix, cpz + iz )
+                    + gpf_world_height6.Sample( cpx + ix, cpz + iz );
 
                 int map_height = (int)wrd::ConvertHeight(real_sample_height, biome_weights);
                 if (map_height >= consts::MAP_Y) map_height = consts::MAP_Y - 1;
                 if (map_height < 0) map_height = 0;
-                for (int iy = 0; iy <= map_height; ++iy )
+                int iy = 0;
+                for (; iy <= map_height - 5; ++iy)
+                {
+                    this->SetBlock( ix, iy, iz, Block( data::EBlockID::COBBLESTONE ) );
+                }
+                for (; iy <= map_height; ++iy )
                 {
                     this->SetBlock( ix, iy, iz, Block( blk ) );
+                }
+                if (gpf_cover_block.Sample( cpx + ix, cpz + iz ) > cover_threshold)
+                {
+                    this->SetBlock( ix, std::min(consts::MAP_Y - 1, std::max(0, iy - 1)), iz, Block( cover_blk ) );
                 }
 #endif
 
             }
+
+        std::vector<std::tuple<int,int,float,int>> sample_points;
+        for (int iix = -1; iix <= 1; ++iix)
+            for (int iiz = -1; iiz <= 1; ++iiz)
+                for (int cnt = 0; cnt < 10; ++cnt)
+                {
+                    sample_points.push_back(std::make_tuple(
+                        iix * consts::CHUNK_X + (int)(consts::CHUNK_X *
+                            guf_object.Sample(cpx + iix * consts::CHUNK_X + cnt, cpz + iiz * consts::CHUNK_Z)),
+                        iiz * consts::CHUNK_Z + (int)(consts::CHUNK_Z *
+                            guf_object.Sample(cpx + iix * consts::CHUNK_X + cnt, cpz + iiz * consts::CHUNK_Z + 1)),
+                        guf_object.Sample(cpx + iix * consts::CHUNK_X + cnt, cpz + iiz * consts::CHUNK_Z + 2),
+                        (int)(256.0f * guf_object.Sample(cpx + iix * consts::CHUNK_X + cnt, cpz + iiz * consts::CHUNK_Z + 3))
+                    ));
+                }
+
+        for (auto &o : sample_points)
+        {
+            auto [px, pz, type, flag] = o;
+
+            static rand::GlobalPerlinField gpf_object_dist1(22334455U, 256, 1.0f);
+            static rand::GlobalUniformField guf_object_dist11(33445566U);
+            static rand::GlobalPerlinField gpf_object_dist2(44556677U, 32, 1.0f);
+
+            int type_int;
+            if (type > 0.7) type_int = 1;  // stone
+            else type_int = 0;  // other
+
+            if (type_int == 0)
+            {
+                if (gpf_object_dist1.Sample(cpx + px, cpz + pz) +
+                    guf_object_dist11.Sample(cpx + px, cpz + pz) * 0.3f < 0.4f)
+                    continue;
+            }
+            else
+            {
+                if (gpf_object_dist2.Sample(cpx + px, cpz + pz) < 0.5f)
+                    continue;
+            }
+
+            float biome_weights[6];
+            wrd::GetBiomeFraction(biome_weights,
+                gpf_height.Sample(cpx + px, cpz + pz),
+                gpf_temperature.Sample(cpx + px, cpz + pz));
+
+            const float acc = guf_blk_type.Sample(cpx + px, cpz + pz);
+            float sum = 0.0f;
+            int blk_id = 0;
+            for (; blk_id < 6; ++blk_id)
+            {
+                sum += biome_weights[blk_id];
+                if (sum >= acc) break;
+            }
+            data::EBlockID blk;
+            data::EBlockID cover_blk;
+            float cover_threshold;
+            switch(blk_id)
+            {
+            case 0:
+                blk = data::EBlockID::SAND;
+                cover_blk = data::EBlockID::SAND;
+                cover_threshold = -1.0f;
+                break;
+            case 1:
+                blk = data::EBlockID::RED_SAND;
+                cover_blk = data::EBlockID::DIRT;
+                cover_threshold = 0.4f;
+                break;
+            case 2:
+                blk = data::EBlockID::DIRT;
+                cover_blk = data::EBlockID::GRASS;
+                cover_threshold = -0.4f;
+                break;
+            case 3:
+                blk = data::EBlockID::COBBLESTONE;
+                cover_blk = data::EBlockID::DIRT;
+                cover_threshold = 0.4f;
+                break;
+            case 4:
+                blk = data::EBlockID::DIRT;
+                cover_blk = data::EBlockID::SNOW;
+                cover_threshold = -0.4f;
+                break;
+            case 5: case 6:
+                blk = data::EBlockID::COBBLESTONE;
+                cover_blk = data::EBlockID::SNOW;
+                cover_threshold = 0.4f;
+                break;
+            }
+
+            float real_sample_height =
+                gpf_world_height1.Sample( cpx + px, cpz + pz )
+                + gpf_world_height2.Sample( cpx + px, cpz + pz )
+                + gpf_world_height3.Sample( cpx + px, cpz + pz )
+                + gpf_world_height4.Sample( cpx + px, cpz + pz )
+                + gpf_world_height5.Sample( cpx + px, cpz + pz )
+                + gpf_world_height6.Sample( cpx + px, cpz + pz );
+
+            int map_height = (int)wrd::ConvertHeight(real_sample_height, biome_weights);
+            if (map_height >= consts::MAP_Y) map_height = consts::MAP_Y - 1;
+            if (map_height < 0) map_height = 0;
+
+            // generate
+#define CHK_PLACE(x, y, z, bblk) {\
+if (0 <= (x) && 0 <= (y) && 0 <= (z) &&\
+(x) < consts::CHUNK_X &&\
+(y) < consts::CHUNK_Y &&\
+(z) < consts::CHUNK_Z)\
+{ this->SetBlock( x, y, z, Block( (bblk) ) ); }}
+
+            std::linear_congruential_engine<uint32_t, 1664525, 1013904223, 0> rand_dist(flag);
+            std::uniform_real_distribution<float> real_dist(-1.0f, 1.0f);
+
+            if (type_int == 1)
+            {
+                // rock
+                float sz_amp = 7.0f + 6.0f * real_dist(rand_dist);
+                sz_amp *= sz_amp;
+                for (int ppx = -5; ppx <= 5; ++ppx)
+                    for (int ppz = -5; ppz <= 5; ++ppz)
+                        for (int ppy = -3; ppy <= 5; ++ppy)
+                        {
+                            int dist_sqr = ppx * ppx + ppz * ppz + ppy * ppy;
+                            if (dist_sqr < sz_amp * (1.0f + real_dist(rand_dist)))
+                                CHK_PLACE(px + ppx, map_height + 1 + ppy, pz + ppz, data::EBlockID::COBBLESTONE);
+                        }
+            }
+            else
+            {
+                if (blk_id == 0 || blk_id == 1)  // cactus
+                {
+                    int sz_height = 4 + (int)(3.0f * real_dist(rand_dist));
+                    for (int ppy = 0; ppy < sz_height; ++ppy)
+                        CHK_PLACE(px, map_height + 1 + ppy, pz, data::EBlockID::CACTUS);
+                }
+                else if (blk_id == 2 || blk_id == 4)  // small tree
+                {
+                    int sz_height = 6 + (int)(3.0f * real_dist(rand_dist));
+                    for (int ppy = 0; ppy < sz_height; ++ppy)
+                        CHK_PLACE(px, map_height + 1 + ppy, pz, data::EBlockID::TREE);
+                    int sz_rad = (int)((float)sz_height * 0.6f + 1.0f * real_dist(rand_dist));
+
+                    for (int ppx = -sz_rad; ppx <= sz_rad; ++ppx)
+                        for (int ppz = -sz_rad; ppz <= sz_rad; ++ppz)
+                            for (int ppy = -sz_rad; ppy <= sz_rad; ++ppy)
+                            {
+                                int dist_sqr = ppx * ppx + ppz * ppz + ppy * ppy;
+                                if (dist_sqr < sz_rad * sz_rad * (1.0f + real_dist(rand_dist)))
+                                    CHK_PLACE(px + ppx, map_height + 1 + sz_height + ppy, pz + ppz, data::EBlockID::LEAF);
+                            }
+                }
+                else if (blk_id == 3) // tree
+                {
+                    int sz_height = 14 + (int)(5.0f * real_dist(rand_dist));
+                    for (int ppy = 0; ppy < sz_height; ++ppy)
+                        CHK_PLACE(px, map_height + 1 + ppy, pz, data::EBlockID::TREE);
+                    int sz_rad = (int)((float)sz_height * 0.4f + 3.0f * real_dist(rand_dist));
+
+                    for (int ppx = -sz_rad; ppx <= sz_rad; ++ppx)
+                        for (int ppz = -sz_rad; ppz <= sz_rad; ++ppz)
+                            for (int ppy = -sz_rad; ppy <= sz_rad; ++ppy)
+                            {
+                                int dist_sqr = ppx * ppx + ppz * ppz + ppy * ppy;
+                                if (dist_sqr < sz_rad * sz_rad * (1.0f + real_dist(rand_dist)))
+                                    CHK_PLACE(px + ppx, map_height + 1 + sz_height + ppy, pz + ppz, data::EBlockID::LEAF);
+                            }
+                }
+                else if (blk_id == 5)  // snow tree
+                {
+                    int sz_height = 14 + (int)(5.0f * real_dist(rand_dist));
+                    int sz_rad = (int)((float)sz_height * 0.4f + 3.0f * real_dist(rand_dist));
+
+                    int max_sz_height = 0;
+                    for (int ppx = -sz_rad; ppx <= sz_rad; ++ppx)
+                        for (int ppz = -sz_rad; ppz <= sz_rad; ++ppz)
+                            for (int ppy = -sz_rad; ppy <= sz_rad * 3; ++ppy)
+                            {
+                                float leaf_rad = ((4 + sz_rad - ppy) % 5 + 3) / 5.0f;
+                                int dist_sqr = ppx * ppx + ppz * ppz + ppy;
+                                if (dist_sqr < sz_rad * leaf_rad * sz_rad * (1.0f + real_dist(rand_dist)))
+                                {
+                                    CHK_PLACE(px + ppx, map_height + 1 + sz_height + ppy, pz + ppz, data::EBlockID::LEAF);
+                                    max_sz_height = std::max(max_sz_height, sz_height + ppy);
+                                }
+                            }
+
+                    for (int ppy = 0; ppy <= max_sz_height + 1; ++ppy)
+                    {
+                        CHK_PLACE(px + 0, map_height + 1 + ppy, pz + 0, data::EBlockID::TREE);
+                        CHK_PLACE(px + 1, map_height + 1 + ppy, pz + 0, data::EBlockID::TREE);
+                        CHK_PLACE(px + 0, map_height + 1 + ppy, pz + 1, data::EBlockID::TREE);
+                        CHK_PLACE(px + 1, map_height + 1 + ppy, pz + 1, data::EBlockID::TREE);
+                    }
+
+                    CHK_PLACE(px + 0, map_height + 2 + max_sz_height, pz + 0, data::EBlockID::LEAF);
+                    CHK_PLACE(px + 1, map_height + 2 + max_sz_height, pz + 0, data::EBlockID::LEAF);
+                    CHK_PLACE(px + 0, map_height + 2 + max_sz_height, pz + 1, data::EBlockID::LEAF);
+                    CHK_PLACE(px + 1, map_height + 2 + max_sz_height, pz + 1, data::EBlockID::LEAF);
+                }
+            }
+#undef CHK_PLACE
+
+        }
+
     }
 
     void Chunk::Clear( bool to_retrieve_buffer )

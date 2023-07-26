@@ -99,10 +99,10 @@ namespace vox::gameutils
         vox::data::vector::SetByHexColor(0x3bb0ff),
         vox::data::vector::SetByHexColor(0x70d4ff),
         vox::data::vector::SetByHexColor(0x99c4e0),
-        vox::data::vector::SetByHexColor(0xff6929),
-        vox::data::vector::SetByHexColor(0x1e083b),
-        vox::data::vector::SetByHexColor(0x110e1f),
-        vox::data::vector::SetByHexColor(0x110e1f),
+        vox::data::vector::SetByHexColor(0xdb7e2c),
+        vox::data::vector::SetByHexColor(0x090e2e),
+        vox::data::vector::SetByHexColor(0x03071f),
+        vox::data::vector::SetByHexColor(0x03071f),
     };
 
     vox::data::Vector4f GetSkyColorBySunAltitude( float altitude )
@@ -111,7 +111,7 @@ namespace vox::gameutils
         int index = (int)index_f;
         constexpr int COLORS_CNT = sizeof(colors) / sizeof(colors[0]);
         if ( index < 0 ) index = 0;
-        else if ( index > COLORS_CNT ) index = COLORS_CNT;
+        else if ( index >= COLORS_CNT ) index = COLORS_CNT - 1;
         const float rem = index_f - (float)index;
         return vox::data::vector::Add(
             vox::data::vector::Mul( colors[index], vox::data::vector::SetBroadcast( 1.0f - rem ) ),

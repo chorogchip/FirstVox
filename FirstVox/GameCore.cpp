@@ -6,6 +6,8 @@
 #include "Consts.h"
 #include "ConstsTime.h"
 
+#include "ChunkManager.h"
+
 namespace vox::core::gamecore
 {
     static uint32_t game_ticks = 0LL;
@@ -65,7 +67,18 @@ namespace vox::core::gamecore
 
     void Init()
     {
-        camera.entity.SetPosition( vox::data::vector::Set( 0.0f, 40.0f, 0.0f, 0.0f ) );
+        auto start_pos = data::vector::Set(0, 0, 0, 0);
+        data::EBlockID blk;
+        while (blk = chunkmanager::GetBlock(start_pos).id,
+            blk != data::EBlockID::AIR && blk != data::EBlockID::MAX_COUNT)
+        {
+            start_pos.m128i_i32[1]++;
+        }
+        start_pos.m128i_i32[1] += 2;
+        if (start_pos.m128i_i32[1] == 2)
+            start_pos.m128i_i32[1] = 35;
+
+        camera.entity.SetPosition( data::vector::ConvertToVector4f( start_pos ));
         //camera.entity.SetSpeed( vox::data::vector::Set( 0.0f, 0.0f, 0.0f, 0.0f ) );
         for (int i = 0; i < 10; ++i)
             hand_blocks[i] = (vox::data::EBlockID)(i + 1);
