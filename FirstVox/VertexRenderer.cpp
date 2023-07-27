@@ -259,8 +259,8 @@ namespace vox::ren::vertex
         immediate_context_->PSSetConstantBuffers( 2, 1, &chunk_CB_changes_every_frame_ps_ );
 
 
-        fogEnd = vox::core::chunkmanager::GetRenderChunkDist() * vox::consts::CHUNK_X * 0.95f;
-        fogStart = fogEnd * 0.9f;
+        fogEnd = (float)(vox::core::chunkmanager::GetRenderChunkDist() * vox::consts::CHUNK_X - vox::consts::CHUNK_X);
+        fogStart = (fogEnd - (float)vox::consts::CHUNK_X) * 0.9f;
         fogEnd *= fogEnd;
         fogStart *= fogStart;
         fog_a = 1.0f / (fogEnd - fogStart);

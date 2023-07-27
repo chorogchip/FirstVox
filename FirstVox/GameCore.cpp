@@ -67,16 +67,15 @@ namespace vox::core::gamecore
 
     void Init()
     {
-        auto start_pos = data::vector::Set(0, 0, 0, 0);
-        data::EBlockID blk;
-        while (blk = chunkmanager::GetBlock(start_pos).id,
-            blk != data::EBlockID::AIR && blk != data::EBlockID::MAX_COUNT)
+        auto start_pos = data::vector::Set(0, 45, 0, 0);
+        for (int i = 35; i < consts::CHUNK_Y; ++i)
         {
+            const auto blk = chunkmanager::GetBlock(start_pos).id;
+            if (blk == data::EBlockID::AIR || blk == data::EBlockID::MAX_COUNT)
+                break;
             start_pos.m128i_i32[1]++;
         }
         start_pos.m128i_i32[1] += 2;
-        if (start_pos.m128i_i32[1] == 2)
-            start_pos.m128i_i32[1] = 35;
 
         camera.entity.SetPosition( data::vector::ConvertToVector4f( start_pos ));
         //camera.entity.SetSpeed( vox::data::vector::Set( 0.0f, 0.0f, 0.0f, 0.0f ) );

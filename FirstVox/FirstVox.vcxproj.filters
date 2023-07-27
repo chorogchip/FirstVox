@@ -177,6 +177,12 @@
     <ClInclude Include="GlobalUniformField.h">
       <Filter>헤더 파일\Util</Filter>
     </ClInclude>
+    <ClInclude Include="SeedManager.h">
+      <Filter>헤더 파일\Core</Filter>
+    </ClInclude>
+    <ClInclude Include="EnumActionResult.h">
+      <Filter>헤더 파일\Util</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="FirstVox.cpp">
@@ -250,6 +256,9 @@
     </ClCompile>
     <ClCompile Include="GlobalUniformField.cpp">
       <Filter>소스 파일\Util</Filter>
+    </ClCompile>
+    <ClCompile Include="SeedManager.cpp">
+      <Filter>소스 파일\Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

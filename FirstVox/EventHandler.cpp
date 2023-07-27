@@ -51,17 +51,17 @@ namespace vox::core::eventhandler {
         case VK_OEM_PLUS:
             {
                 const auto ren_dist = vox::core::chunkmanager::GetRenderChunkDist();
-                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.entity );
-                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, ren_dist + 3);
                 vox::core::chunkmanager::SetRenderChunkDist( ren_dist + 1 );
+                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.entity );
+                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, vox::core::chunkmanager::GetRenderChunkDist() + 2 );
             }
             break;
         case VK_OEM_MINUS:
             {
                 const auto ren_dist = vox::core::chunkmanager::GetRenderChunkDist();
-                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.entity );
-                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, ren_dist + 1);
                 vox::core::chunkmanager::SetRenderChunkDist( ren_dist - 1 );
+                vox::core::chunkmanager::CleanDynamicChunkLoader( &vox::core::gamecore::camera.entity );
+                vox::core::chunkmanager::RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, vox::core::chunkmanager::GetRenderChunkDist() + 2 );
             }
             break;
         }

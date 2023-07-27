@@ -14,6 +14,8 @@
 #include "GlobalPerlinField.h"
 #include "GlobalUniformField.h"
 #include "Biones.h"
+#include "SeedManager.h"
+#include "NetWorkManager.h"
 
 namespace vox::data
 {
@@ -107,8 +109,11 @@ FIN_INSERT_LIGHT:;
         }
     }
 
-    void Chunk::Load()
+    void Chunk::Load( bool to_pass_read )
     {
+        if (to_pass_read)
+            goto PASS_READ;
+
         char file_name[256];
         sprintf_s( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d.chnk", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
         FILE *fp;
@@ -155,8 +160,12 @@ FIN_INSERT_LIGHT:;
                 delete[] data;
             }
             fclose( fp );
+            this->Touch();
             return;
         }
+
+
+        PASS_READ:
 
         //memset( d_data_, 0, sizeof( d_data_ ) );
         memset( d_id_, 0, sizeof( d_id_ ) );
@@ -197,6 +206,10 @@ FIN_INSERT_LIGHT:;
         static rand::GlobalPerlinField gpf_world_height5(67812345U,  16, 0.0625f);
         static rand::GlobalPerlinField gpf_world_height6(78123456U,   8, 0.03125f);
         static rand::GlobalPerlinField gpf_cover_block(15263748U, 32, 1.0f);
+
+        static rand::GlobalPerlinField gpf_object_dist1(22334455U, 256, 1.0f);
+        static rand::GlobalUniformField guf_object_dist11(33445566U);
+        static rand::GlobalPerlinField gpf_object_dist2(44556677U, 32, 1.0f);
 
         for (int  iz = 0; iz < vox::consts::CHUNK_Z; ++iz)
             for ( int ix = 0; ix < vox::consts::CHUNK_X; ++ix )
@@ -391,9 +404,6 @@ FIN_INSERT_LIGHT:;
         {
             auto [px, pz, type, flag] = o;
 
-            static rand::GlobalPerlinField gpf_object_dist1(22334455U, 256, 1.0f);
-            static rand::GlobalUniformField guf_object_dist11(33445566U);
-            static rand::GlobalPerlinField gpf_object_dist2(44556677U, 32, 1.0f);
 
             int type_int;
             if (type > 0.7) type_int = 1;  // stone
@@ -587,6 +597,9 @@ if (0 <= (x) && 0 <= (y) && 0 <= (z) &&\
         if ( !this->is_changed_ )
             return;
 
+        if (net::NMIsClient())
+            return;
+
         char file_name[256];
         sprintf_s( file_name, "GameData/Map/Chunks/chunk_%d_%d_%d.chnk", this->cv_.m128i_i32[0], this->cv_.m128i_i32[1], this->cv_.m128i_i32[2]);
         FILE *fp;
@@ -638,7 +651,7 @@ if (0 <= (x) && 0 <= (y) && 0 <= (z) &&\
         std::vector<unsigned short> out;
         for (int i = 0; i < 4; ++i)
             out.push_back(0);
-        *(unsigned *)&out[2] = vox::consts::GAME_VERSION;
+        *(unsigned *)&out[0] = vox::consts::GAME_VERSION;
 
         for (int z = 0; z < vox::consts::CHUNK_Z; ++z)
             for ( int x = 0; x < vox::consts::CHUNK_X; ++x )
@@ -668,10 +681,10 @@ if (0 <= (x) && 0 <= (y) && 0 <= (z) &&\
                 }
             out.push_back( -1 );
         }
-        *(int *)&out[0] = (int)out.size() - 4;
+        *(int *)&out[2] = (int)out.size() - 4;
         size_t sz = out.size() * sizeof(unsigned short);
-        *pp_data = new unsigned char[sz];
-        memcpy(*pp_data, &out[0], sz);
+        *pp_data = new unsigned char[sz + offset];
+        memcpy(*pp_data + offset, &out[0], sz);
         return sz;
     }
 
@@ -1351,5 +1364,32 @@ if (0 <= (x) && 0 <= (y) && 0 <= (z) &&\
     void Chunk::Touch()
     {
         this->is_changed_ = true;
+    }
+
+
+    void Chunk::SetBlocks(std::vector<std::tuple<int,int,int,data::Block>> &blocks)
+    {
+        for (auto it = blocks.begin(); it != blocks.end();)
+        {
+            auto [x, y, z, blk] = *it;
+            static_assert(consts::MAP_Y == consts::CHUNK_Y);
+            static_assert(consts::CHUNK_X == consts::CHUNK_Z);
+            
+            alignas(16) int cpos[4];
+            const auto cv = data::vector::Mul( data::vector::SetBroadcast(consts::CHUNK_X),  this->cv_ );
+            data::vector::Storeu(cpos, cv);
+
+            if (x < cpos[0] || z < cpos[2] ||
+                x >= cpos[0] + consts::CHUNK_X ||
+                z >= cpos[2] + consts::CHUNK_Z)
+            {
+                ++it;
+                continue;
+            }
+
+            this->SetBlock(x - cpos[0], y, z - cpos[2], blk);
+            it = blocks.erase(it);
+        }
+    
     }
 }

@@ -7,8 +7,10 @@
 #include <cassert>
 #include <map>
 #include <mutex>
+#include <string>
 
 #include "ChunkManager.h"
+#include "QueueFor1WorkerThread.h"
 
 namespace vox::net
 {
@@ -38,15 +40,20 @@ namespace vox::net
     static sockaddr_in sock_addr;
 
     static std::thread network_thread_;
+    static std::thread send_packet_thread_;
     static volatile bool network_thread_is_running_ = false;
+    static volatile bool network_has_connection_ = false;
     static char packet_buf[1024 * 1024 * 2];
     static std::map<std::tuple<int,int,int>, void*> load_chunk_map_;
     static std::mutex map_lock_;
+
+    static data::QueueFor1WorkerThread<DefPacket, 64> send_packet_queue_;
 
     static int InitServer();
     static int InitClient();
     static void ServerThreadFunc();
     static void ClientThreadFunc();
+    static void SendPacketThreadFunc();
 
     bool NMIsClient()
     {
@@ -54,7 +61,7 @@ namespace vox::net
     }
     bool NMHasConnection()
     {
-        return network_thread_is_running_;
+        return network_has_connection_;
     }
 
     int NMInit()
@@ -86,6 +93,7 @@ namespace vox::net
 
     void NMClear()
     {
+        network_has_connection_ = false;
         if (network_thread_is_running_)
         {
             network_thread_is_running_ = false;
@@ -93,6 +101,7 @@ namespace vox::net
         if (connect_socket_ != INVALID_SOCKET)
             closesocket(connect_socket_);
         network_thread_.join();
+        send_packet_thread_.join();
         WSACleanup();
     }
 
@@ -108,9 +117,10 @@ namespace vox::net
         sock_addr.sin_family = AF_INET;
         sock_addr.sin_addr.s_addr = INADDR_ANY;
         sock_addr.sin_port = htons( net_info_.port );
-        
+
         network_thread_is_running_ = true;
         network_thread_ = std::thread(ServerThreadFunc);
+        send_packet_thread_ = std::thread(SendPacketThreadFunc);
 
         return 0;
     }
@@ -128,7 +138,9 @@ namespace vox::net
         //InetPton(AF_INET, (PCWSTR)net_info_.server_ip, &sock_addr.sin_addr.s_addr);
         sock_addr.sin_port = htons( net_info_.port );
         //sock_addr.sin_addr.S_un.S_addr = inet_addr(net_info_.server_ip);
-        InetPton(AF_INET, L"127.0.0.1", &sock_addr.sin_addr.s_addr);
+        std::string server_ip_str(net_info_.server_ip);
+        std::wstring wstr(server_ip_str.begin(), server_ip_str.end());
+        InetPton(AF_INET, wstr.c_str(), &sock_addr.sin_addr.s_addr);
 
         DefPacket sig_packet;
         sig_packet.flag = EnumPacketFlag::SIGNAL;
@@ -136,7 +148,9 @@ namespace vox::net
             (sockaddr*)&sock_addr, sizeof(sockaddr));
 
         network_thread_is_running_ = true;
+        network_has_connection_ = true;
         network_thread_ = std::thread(ClientThreadFunc);
+        send_packet_thread_ = std::thread(SendPacketThreadFunc);
 
         return 0;
     }
@@ -154,6 +168,7 @@ namespace vox::net
                 return;
             }
 
+            network_has_connection_ = true;
             OutputDebugStringA("bind socket succeed\n");
 
             while (network_thread_is_running_)
@@ -220,11 +235,18 @@ namespace vox::net
             {
                 map_lock_.lock();
                 auto it = load_chunk_map_.find(std::make_tuple(recv_packet->x, recv_packet->y, recv_packet->z));
-                const auto c_ptr = it->second;
-                load_chunk_map_.erase(it);
-                map_lock_.unlock();
-                core::chunkmanager::ProcessDataChunkPacket(c_ptr,
-                    (size_t*)&recv_packet->data + 1, (size_t)recv_packet->data - sizeof(recv_packet));
+                if (it != load_chunk_map_.end())
+                {
+                    const auto c_ptr = it->second;
+                    load_chunk_map_.erase(it);
+                    map_lock_.unlock();
+                    core::chunkmanager::ProcessDataChunkPacket(c_ptr,
+                        (size_t*)&recv_packet->data + 1, (size_t)recv_packet->data - sizeof(recv_packet));
+                }
+                else
+                {
+                    map_lock_.unlock();
+                }
                 break;
             }
             case EnumPacketFlag::LOAD_CHUNK:
@@ -232,6 +254,27 @@ namespace vox::net
                 assert(0);
                 break;
             }
+        }
+    }
+
+    void SendPacketThreadFunc()
+    {
+        while (network_thread_is_running_)
+        {
+            if (send_packet_queue_.IsEmpty())
+                Sleep(0);
+            else
+            {
+                int sz = send_packet_queue_.Size();
+                for (int i = 0; i < sz; ++i)
+                {
+                    auto o = send_packet_queue_.Pop();
+                    sendto(connect_socket_, (const char*)&o, sizeof(o), 0,
+                        (const sockaddr*)&sock_addr, sizeof(sockaddr_in));
+                }
+            
+            }
+        
         }
     }
 
@@ -255,8 +298,15 @@ namespace vox::net
                 (const sockaddr*)&sock_addr, sizeof(sockaddr_in));
             return;
         }
-        sendto(connect_socket_, (const char*)packet, sizeof(*packet), 0,
-            (const sockaddr*)&sock_addr, sizeof(sockaddr_in));
+        if (!send_packet_queue_.IsFull())
+        {
+            send_packet_queue_.Push(*packet);
+        }
+        else
+        {
+            sendto(connect_socket_, (const char*)packet, sizeof(*packet), 0,
+                (const sockaddr*)&sock_addr, sizeof(sockaddr_in));
+        }
     }
 
 

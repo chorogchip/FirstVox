@@ -71,7 +71,7 @@ namespace vox::ren::base
         sd.OutputWindow = hwnd;
         sd.Windowed = TRUE;
         sd.SwapEffect = DXGI_SWAP_EFFECT_DISCARD;
-        sd.Flags = 0;
+        sd.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
         
         for ( UINT driverTypeIndex = 0; driverTypeIndex < numDriverTypes; ++driverTypeIndex )
         {
@@ -180,6 +180,13 @@ namespace vox::ren::base
         return hr;
     }
 
+
+    void ToggleFullScreenState()
+    {
+        static bool state = false;
+        swap_chain_->SetFullscreenState(state = !state, nullptr);
+    }
+
     HRESULT ResizeScreen( HWND hwnd, long new_width, long new_height )
     {
         if ( swap_chain_ == nullptr )
@@ -197,7 +204,7 @@ namespace vox::ren::base
 
         HRESULT hr{ S_OK };
 
-        hr = swap_chain_->ResizeBuffers( 1, width_, height_, DXGI_FORMAT_R8G8B8A8_UNORM, 0 );
+        hr = swap_chain_->ResizeBuffers( 1, width_, height_, DXGI_FORMAT_R8G8B8A8_UNORM, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH );
         if ( FAILED( hr ) )
         {
             return hr;
@@ -291,6 +298,8 @@ namespace vox::ren::base
 
     void Clear( const float* clear_color )
     {
+        swap_chain_->SetFullscreenState(false, nullptr);
+
         immediate_context_->ClearRenderTargetView( render_target_view_,
             clear_color );
         immediate_context_->ClearDepthStencilView( depth_stencil_view_,

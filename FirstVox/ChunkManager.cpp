@@ -75,6 +75,7 @@ namespace vox::core::chunkmanager
     static vox::data::QueueFor1WorkerThread<std::tuple<int,int,int,data::Block>, 256> packet_setblock_queue_;
     static vox::data::QueueFor1WorkerThread<std::tuple<int,int,int>, 256> packet_load_chunk_queue_;
     static vox::data::QueueFor1WorkerThread<std::tuple<int,int,int, ChunkNode*>, 256> packet_load_chunk_job_queue_;
+    static std::vector<std::tuple<int,int,int,data::Block>> setblock_packet_store_;
 
     struct ChunkNodeRenderInfo
     {
@@ -196,7 +197,7 @@ namespace vox::core::chunkmanager
             unsigned char* data;
             size_t sz = cn->chunk.GetStoringData(&data, sizeof(ret_packet));
             ret_packet.flag = net::EnumPacketFlag::DATA_CHUNK;
-            ret_packet.data = (void*)(sz);
+            ret_packet.data = (void*)(sz + sizeof(ret_packet));
             memcpy(data, &ret_packet, sizeof(ret_packet));
             net::NMSendDefPacket((net::DefPacket*)data);
             delete[] data;
@@ -214,7 +215,7 @@ GEN_CHUNK:
     void ProcessGenChunkPacket(void* chunk_node_ptr)
     {
         ChunkNode* p_chunk_node = (ChunkNode*)chunk_node_ptr;
-        p_chunk_node->chunk.Load();
+        p_chunk_node->chunk.Load( true );
         p_chunk_node->state = EnumChunkStates::LOAD_FINISHED;
     }
     void ProcessDataChunkPacket(void* chunk_node_ptr, void* data, size_t sz)
@@ -255,6 +256,7 @@ GEN_CHUNK:
                             if ( chunk_load_job_queue_.IsFull() )
                             {
                                 (*ch)->chunk.Load();
+                                (*ch)->chunk.SetBlocks(setblock_packet_store_);
                                 (*ch)->state = EnumChunkStates::LOAD_FINISHED;
                             }
                             else
@@ -395,6 +397,7 @@ PASS_THIS_CHUNK:;
                 {
                     ChunkNode *const p_chunk_node = chunk_load_job_queue_.Pop();
                     p_chunk_node->chunk.Load();
+                    p_chunk_node->chunk.SetBlocks(setblock_packet_store_);
                     p_chunk_node->state = EnumChunkStates::LOAD_FINISHED;
                 }
 
@@ -432,19 +435,41 @@ PASS_THIS_CHUNK:;
     {
         if ( render_chunk_dist > vox::consts::MAX_RENDER_DIST )
             render_chunk_dist = vox::consts::MAX_RENDER_DIST;
-        if ( render_chunk_dist < 1 )
-            render_chunk_dist = 1;
+        if ( render_chunk_dist < 2 )
+            render_chunk_dist = 2;
         chunk_render_dist_ = render_chunk_dist;
     }
 
     void Init()
     {
-        chunk_render_dist_ = vox::consts::INIT_RENDER_DIST;
+        if (net::NMIsClient())
+            SetRenderChunkDist(2);
+        else
+            SetRenderChunkDist(vox::consts::INIT_RENDER_DIST);
+
+        if (!net::NMIsClient())
+        {
+            FILE* fp = nullptr;
+            fopen_s(&fp, "GameData/SetBlockBuf", "rb");
+            if (fp != nullptr)
+            {
+                size_t sz;
+                fread(&sz, sizeof(sz), 1, fp);
+                if (sz != 0)
+                {
+                    setblock_packet_store_.reserve(sz);
+                    for (int i = 0; i < sz; ++i) setblock_packet_store_.emplace_back();
+                    fread(&setblock_packet_store_[0], sizeof(setblock_packet_store_[0]), sz, fp);
+                }
+                fclose(fp);
+            }
+        }
+
         const vox::data::Vector4i cam_pos = vox::data::vector::ConvertToVector4i(
             vox::data::vector::Round( vox::core::gamecore::camera.entity.GetPositionVec() ) );
         const vox::data::Vector4i cam_chunk_num = GetChunkNumByBlockPos( cam_pos );
         
-        RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, vox::consts::INIT_LOAD_DIST);
+        RegisterDynamicChunkLoader( &vox::core::gamecore::camera.entity, GetRenderChunkDist() + 2);
 
         chunk_load_thread_ = std::thread(ChunkLoadThreadLoop);
 
@@ -474,10 +499,23 @@ PASS_THIS_CHUNK:;
         }
         while ( true );
 
+
     }
 
     void Clean()
     {
+        if (!net::NMIsClient())
+        {
+            FILE* fp = nullptr;
+            fopen_s(&fp, "GameData/SetBlockBuf", "wb");
+            const size_t sz = setblock_packet_store_.size();
+            fwrite(&sz, sizeof(sz), 1, fp);
+            if (sz != 0)
+                fwrite(&setblock_packet_store_[0], sizeof(setblock_packet_store_[0]), sz, fp);
+            fclose(fp);
+        }
+
+
         exit_chunk_load_thread = true;
         chunk_load_thread_.join();
 
@@ -525,8 +563,11 @@ PASS_THIS_CHUNK:;
 
         for (int i = 0, sz = (int)packet_setblock_queue_.Size(); i < sz; ++i )
         {
-            auto [x, y, z, blk] = packet_setblock_queue_.Pop();
-            SetBlock( data::vector::Set(x, y, z, 0), blk, false );
+            auto o = packet_setblock_queue_.Pop();
+            auto [x, y, z, blk] = o;
+            const auto res = SetBlock( data::vector::Set(x, y, z, 0), blk, false );
+            if (res == data::EnumActionResultSF::FAILED)
+                setblock_packet_store_.push_back(o);
         }
 
         for (int i = 0, sz = (int)packet_load_chunk_queue_.Size(); i < sz; ++i)
@@ -726,11 +767,15 @@ DONT_RENDER_THIS_CHUNK:;
         }
     }
 
-    void VEC_CALL SetBlock(vox::data::Vector4i block_pos, vox::data::Block block, bool send_packet )
+    data::EnumActionResultSF VEC_CALL SetBlock(vox::data::Vector4i block_pos, vox::data::Block block, bool send_packet )
     {
         const auto cv = GetChunkNumByBlockPos( block_pos );
         ChunkNode* const ch = GetChunkNodeByChunkNum( cv );
-        if ( ch != nullptr )
+        if ( ch == nullptr )
+        {
+            return data::EnumActionResultSF::FAILED;
+        }
+        else
         {
             alignas(16) int bp[4];
             vox::data::vector::Store( (vox::data::Vector4i*)bp, GetBlockRemPosByPos( block_pos ) );
@@ -752,7 +797,7 @@ DONT_RENDER_THIS_CHUNK:;
             ch->chunk.SetBlock( bp[0], bp[1], bp[2], block );
             ch->chunk.Touch();
 
-            if (send_packet)
+            if (send_packet && net::NMHasConnection())
             {
                 net::DefPacket def_packet;
                 def_packet.flag = net::EnumPacketFlag::SET_BLOCK;
@@ -762,6 +807,8 @@ DONT_RENDER_THIS_CHUNK:;
                 def_packet.data = (void*)(size_t)block.id;
                 net::NMSendDefPacket(&def_packet);
             }
+
+            return data::EnumActionResultSF::SUCCEED;
         }
     }
 

@@ -175,6 +175,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="ChunkManager.h" />
     <ClInclude Include="ChunkVertexBuffer.h" />
+    <ClInclude Include="EnumActionResult.h" />
     <ClInclude Include="FirstVoxHeader.h" />
     <ClInclude Include="GlobalPerlinField.h" />
     <ClInclude Include="GlobalUniformField.h" />
@@ -204,6 +205,7 @@
     <ClInclude Include="Renderer_for_VertexRenderer.h" />
     <ClInclude Include="Renderer_for_Winmain.h" />
     <ClInclude Include="Resource.h" />
+    <ClInclude Include="SeedManager.h" />
     <ClInclude Include="Shapes.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Timer.h" />
@@ -234,6 +236,7 @@
     <ClCompile Include="Perlin.cpp" />
     <ClCompile Include="Ray.cpp" />
     <ClCompile Include="Renderer.cpp" />
+    <ClCompile Include="SeedManager.cpp" />
     <ClCompile Include="Shapes.cpp" />
     <ClCompile Include="Utils.cpp" />
     <ClCompile Include="Vector.cpp" />

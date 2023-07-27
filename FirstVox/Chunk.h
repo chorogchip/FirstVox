@@ -1,5 +1,8 @@
 #pragma once
 
+#include <vector>
+#include <tuple>
+
 #include "Macros.h"
 #include "Consts.h"
 #include "EBlockID.h"
@@ -61,7 +64,7 @@ namespace vox::data
             return this->cv_;
         }
 
-        void Load();
+        void Load( bool to_pass_read = false );
         void LoadFromData(void* data, size_t size);
         // adj_chks[8] must be this
         void GenerateVertex( Chunk* adj_chks[9],
@@ -74,5 +77,6 @@ namespace vox::data
         bool IsChanged() const { return is_changed_; }
         size_t GetStoringData(unsigned char** pp_data, size_t offset) const;
         static FILE* GetFP(int x, int y, int z, const char* mode);
+        void SetBlocks(std::vector<std::tuple<int,int,int,data::Block>> &blocks);
     };
 }

@@ -28,6 +28,7 @@
 #include "EventHandler.h"
 #include "ChunkManager.h"
 #include "NetWorkManager.h"
+#include "SeedManager.h"
 
 
 static ATOM                MyRegisterClass( HINSTANCE hInstance );
@@ -278,8 +279,6 @@ static LRESULT CALLBACK WndProc(HWND h_wnd_, UINT message, WPARAM wParam, LPARAM
                 );
                 break;
             }
-            VK_ADD;
-            break;
         case WM_KEYUP:
             vox::core::eventhandler::OnKeyReleased(
                 (unsigned short)wParam

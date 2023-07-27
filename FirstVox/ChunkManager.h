@@ -4,6 +4,7 @@
 #include "Vector.h"
 #include "Block.h"
 #include "Entity.h"
+#include "EnumActionResult.h"
 
 /*
     청크 매니저는 청크를 관리하면서 청크의 개념을 숨기는 추상화 계층을 제공한다.
@@ -29,7 +30,7 @@ namespace vox::core::chunkmanager
     //vox::data::Block* VEC_CALL GetModifyableBlockByBlockPos( vox::data::Vector4i block_pos );
     // return Block of id MAX_COUNT if failed
     vox::data::Block VEC_CALL GetBlock( vox::data::Vector4i block_pos );
-    void VEC_CALL SetBlock( vox::data::Vector4i block_pos, vox::data::Block block, bool send_packet = true );
+    data::EnumActionResultSF VEC_CALL SetBlock( vox::data::Vector4i block_pos, vox::data::Block block, bool send_packet = true );
 
     void ProcessSetBlockPacket(int x, int y, int z, data::Block block);
     void ReplyLoadChunkPacket(int x, int y, int z);

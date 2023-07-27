@@ -7,6 +7,7 @@
 namespace vox::ren::base
 {
     HRESULT Init( HWND window );
+    void ToggleFullScreenState();
     HRESULT ResizeScreen( HWND hwnd, long width, long height );
     void Clean();
 

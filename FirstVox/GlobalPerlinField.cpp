@@ -3,11 +3,13 @@
 #include "Consts.h"
 #include "Point2D.h"
 
+#include "SeedManager.h"
+
 namespace vox::rand
 {
 
     GlobalPerlinField::GlobalPerlinField(uint64_t seed, int period, float amplitude) :
-        seed_(seed),
+        seed_(seed ^ core::SMGetSeed()),
         period_(period),
         amplitude_(amplitude),
         re_(),

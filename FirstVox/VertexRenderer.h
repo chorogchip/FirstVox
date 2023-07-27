@@ -21,40 +21,40 @@ namespace vox::ren::vertex
     inline constexpr VertexChunk VERTICES_BLOCK[] =
     {
         // up
-        GEN_VC( 1, 1, 1, 0, 1, 1 ),
-        GEN_VC( 0, 1, 1, 0, 0, 1 ),
-        GEN_VC( 0, 1, 0, 0, 0, 0 ),
-        GEN_VC( 1, 1, 0, 0, 1, 0 ),
+        GEN_VC( 1, 1, 1, 0, 1, 0 ),
+        GEN_VC( 0, 1, 1, 0, 0, 0 ),
+        GEN_VC( 0, 1, 0, 0, 0, 1 ),
+        GEN_VC( 1, 1, 0, 0, 1, 1 ),
 
         // down
-        GEN_VC( 1, 0, 0, 1, 1, 1 ),
-        GEN_VC( 0, 0, 0, 1, 0, 1 ),
-        GEN_VC( 0, 0, 1, 1, 0, 0 ),
-        GEN_VC( 1, 0, 1, 1, 1, 0 ),
+        GEN_VC( 1, 0, 0, 1, 1, 0 ),
+        GEN_VC( 0, 0, 0, 1, 0, 0 ),
+        GEN_VC( 0, 0, 1, 1, 0, 1 ),
+        GEN_VC( 1, 0, 1, 1, 1, 1 ),
 
         // front
-        GEN_VC( 0, 1, 1, 2, 1, 1 ),
-        GEN_VC( 1, 1, 1, 2, 0, 1 ),
-        GEN_VC( 1, 0, 1, 2, 0, 0 ),
-        GEN_VC( 0, 0, 1, 2, 1, 0 ),
+        GEN_VC( 0, 1, 1, 2, 1, 0 ),
+        GEN_VC( 1, 1, 1, 2, 0, 0 ),
+        GEN_VC( 1, 0, 1, 2, 0, 1 ),
+        GEN_VC( 0, 0, 1, 2, 1, 1 ),
 
         // back
-        GEN_VC( 1, 1, 0, 3, 1, 1 ),
-        GEN_VC( 0, 1, 0, 3, 0, 1 ),
-        GEN_VC( 0, 0, 0, 3, 0, 0 ),
-        GEN_VC( 1, 0, 0, 3, 1, 0 ),
+        GEN_VC( 1, 1, 0, 3, 1, 0 ),
+        GEN_VC( 0, 1, 0, 3, 0, 0 ),
+        GEN_VC( 0, 0, 0, 3, 0, 1 ),
+        GEN_VC( 1, 0, 0, 3, 1, 1 ),
 
         // right
-        GEN_VC( 1, 1, 1, 4, 1, 1 ),
-        GEN_VC( 1, 1, 0, 4, 0, 1 ),
-        GEN_VC( 1, 0, 0, 4, 0, 0 ),
-        GEN_VC( 1, 0, 1, 4, 1, 0 ),
+        GEN_VC( 1, 1, 1, 4, 1, 0 ),
+        GEN_VC( 1, 1, 0, 4, 0, 0 ),
+        GEN_VC( 1, 0, 0, 4, 0, 1 ),
+        GEN_VC( 1, 0, 1, 4, 1, 1 ),
 
         // left
-        GEN_VC( 0, 1, 0, 5, 1, 1 ),
-        GEN_VC( 0, 1, 1, 5, 0, 1 ),
-        GEN_VC( 0, 0, 1, 5, 0, 0 ),
-        GEN_VC( 0, 0, 0, 5, 1, 0 ),
+        GEN_VC( 0, 1, 0, 5, 1, 0 ),
+        GEN_VC( 0, 1, 1, 5, 0, 0 ),
+        GEN_VC( 0, 0, 1, 5, 0, 1 ),
+        GEN_VC( 0, 0, 0, 5, 1, 1 ),
     };
     /*
     inline constexpr VertexChunk VERTICES_BLOCK[] =
